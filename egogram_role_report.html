@@ -1,0 +1,2695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エゴグラム分析レポート（役職別）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1a2e;--mid:#3a3a5a;--light:#8888aa;--bg:#f5f4f0;--paper:#fffef9;--border:#d4d0c8;--cp:#c0392b;--np:#2c7a50;--a:#2c5282;--fc:#b7791f;--ac:#6b46a0;--gold:#92700a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+.app-wrapper{display:grid;grid-template-columns:380px 1fr;min-height:100vh}
+
+/* LEFT */
+.input-panel{background:var(--ink);color:#e8e6e0;padding:32px 26px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.input-panel::-webkit-scrollbar{width:4px}
+.input-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+.panel-title{font-family:'Noto Serif JP',serif;font-size:19px;font-weight:700;color:#fff;margin-bottom:2px}
+.panel-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.1em;text-transform:uppercase}
+.panel-header{border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:16px}
+.section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px}
+.field-group{display:flex;flex-direction:column;gap:10px}
+.field-row{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:11px;color:rgba(255,255,255,0.45)}
+.field-input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:8px 12px;color:#fff;font-size:13px;font-family:'Noto Sans JP',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.field-input:focus{border-color:rgba(255,255,255,0.4)}
+.field-input::placeholder{color:rgba(255,255,255,0.2)}
+.score-items{display:flex;flex-direction:column;gap:12px}
+.score-item{display:flex;flex-direction:column;gap:4px}
+.score-name{font-size:12px;font-weight:700;letter-spacing:.06em}
+.score-desc{font-size:10px;color:rgba(255,255,255,0.3);font-weight:400;margin-left:4px}
+.score-controls{display:flex;align-items:center;gap:8px}
+.score-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--c,#fff) 0%,var(--c,#fff) var(--val,50%),rgba(255,255,255,0.15) var(--val,50%))}
+.score-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+.score-number{width:46px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:5px 6px;color:#fff;font-size:14px;font-weight:700;text-align:center;font-family:'Noto Sans JP',sans-serif;outline:none}
+.cp-color{color:var(--cp)}.np-color{color:var(--np)}.a-color{color:var(--a)}.fc-color{color:var(--fc)}.ac-color{color:var(--ac)}
+.generate-btn{background:#fff;color:var(--ink);border:none;border-radius:8px;padding:13px 20px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;letter-spacing:.04em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.generate-btn:hover{background:#e8e6e0;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.free-badge{background:rgba(39,103,73,0.3);border:1px solid rgba(39,103,73,0.5);border-radius:5px;padding:7px 12px;font-size:11px;color:#7dd9a8;text-align:center}
+
+/* RIGHT */
+.report-panel{background:var(--bg);padding:40px 48px;display:flex;flex-direction:column;min-width:0;overflow-x:hidden}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center}
+.empty-icon{font-size:56px;opacity:.3}
+.empty-title{font-size:17px;font-weight:500;color:var(--mid)}
+.empty-desc{font-size:13px;color:var(--light);max-width:260px;line-height:1.7}
+#report-output{display:none;flex-direction:column}
+
+/* REPORT */
+.report-document{background:var(--paper);border:1px solid var(--border);box-shadow:0 2px 24px rgba(0,0,0,0.08)}
+.report-header{background:var(--ink);color:#fff;padding:32px 44px;display:flex;justify-content:space-between;align-items:flex-end}
+.report-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:4px}
+.report-main-title{font-family:'Noto Serif JP',serif;font-size:25px;font-weight:700;letter-spacing:.04em}
+.report-meta{text-align:right;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.9}
+.report-meta strong{color:#fff;font-weight:600}
+.score-summary{padding:20px 44px;border-bottom:1px solid var(--border);display:flex}
+.score-bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;border-right:1px solid var(--border)}
+.score-bar-item:last-child{border-right:none}
+.score-bar-label{font-size:11px;font-weight:700;letter-spacing:.08em}
+.score-bar-track{width:100%;height:5px;background:#e8e6e0;border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px}
+.score-bar-num{font-size:20px;font-weight:700}
+.score-bar-name{font-size:9px;color:var(--light);text-align:center}
+.type-header{padding:18px 44px;background:#f3f1ea;border-bottom:2px solid var(--ink);display:flex;align-items:center;gap:16px}
+.type-badge-large{background:var(--ink);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap}
+.type-meta{display:flex;flex-direction:column;gap:3px}
+.type-summary-text{font-size:13px;color:var(--mid);font-weight:500}
+.type-sub{font-size:11px;color:var(--light)}
+.report-body{padding:28px 44px;display:flex;flex-direction:column;gap:0}
+#role-body{padding:0 44px 28px}
+
+/* Sections */
+.report-section{padding:20px 0;border-bottom:1px solid var(--border)}
+.report-section:last-child{border-bottom:none}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.section-num{width:24px;height:24px;background:var(--ink);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.section-num.accent{background:var(--gold)}
+.section-title-text{font-family:'Noto Serif JP',serif;font-size:15px;font-weight:700;letter-spacing:.03em;color:var(--ink)}
+.section-content{padding-left:36px;font-size:13.5px;line-height:2;color:var(--mid)}
+.section-content p{margin-bottom:8px}
+.section-content p:last-child{margin-bottom:0}
+
+/* ボックス類 */
+.note-box{border-left:3px solid var(--ink);padding:10px 14px;border-radius:0 5px 5px 0;margin-top:10px;font-size:12.5px;line-height:1.8}
+.note-box.default{background:#f0ede6;color:var(--ink)}
+.note-box.green{background:#edf7f1;border-color:var(--np);color:#1e5c3a}
+.note-box.blue{background:#edf2fb;border-color:var(--a);color:#1a3a6b}
+.note-box.gold{background:#fdf6e3;border-color:var(--gold);color:var(--gold)}
+.note-box.purple{background:#f5eeff;border-color:var(--ac);color:#4a2a7a}
+.message-box{background:linear-gradient(135deg,#1a1a2e 0%,#2d2d4e 100%);color:#fff;border-radius:8px;padding:20px 22px;margin-top:4px}
+.message-box .msg-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px}
+.message-box .msg-body{font-size:13.5px;line-height:2;color:#e8e6e0}
+.action-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.action-item{display:flex;align-items:flex-start;gap:10px;background:#f7f5ef;border-radius:6px;padding:10px 14px}
+.action-num{background:var(--ink);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.action-text{font-size:13px;line-height:1.7;color:var(--mid)}
+.hint-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.hint-card{background:#f7f5ef;border-radius:6px;padding:10px 14px}
+.hint-card .hint-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--light);margin-bottom:4px}
+.hint-card .hint-text{font-size:12.5px;line-height:1.7;color:var(--mid)}
+.memo-box{background:#f7f5ef;border:1px solid var(--border);border-radius:6px;padding:14px 18px;font-size:12.5px;line-height:1.9;color:var(--light)}
+
+.action-bar{display:flex;gap:10px;padding:16px 0 0;justify-content:flex-end}
+.action-btn{padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;font-family:'Noto Sans JP',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--paper);color:var(--ink);transition:all .15s;display:flex;align-items:center;gap:6px}
+.action-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.action-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.action-btn.primary:hover{background:#2d2d4e}
+
+@media print {
+
+  /* ===== 基本リセット ===== */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
+  @page { size: A4 portrait; margin: 8mm 10mm; }
+  body { margin: 0 !important; padding: 0 !important; background: #fff !important; font-size: 8pt !important; }
+  .input-panel, .action-bar { display: none !important; }
+  .app-wrapper { display: block !important; width: 100% !important; }
+  .report-panel { padding: 0 !important; background: #fff !important; }
+  #report-output { display: block !important; }
+  .report-document { box-shadow: none !important; border: none !important; width: 100% !important; }
+
+  /* ===== PAGE 1: ヘッダー＋グラフ＋マトリクス ===== */
+
+  .report-header {
+    padding: 4mm 8mm 3mm !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    background: #1a1a2e !important;
+    color: #fff !important;
+    break-after: avoid !important;
+  }
+  .report-main-title { font-size: 14pt !important; line-height: 1.2 !important; }
+  .report-label { font-size: 6.5pt !important; margin-bottom: 1px !important; }
+  .report-meta { font-size: 8.5pt !important; line-height: 1.5 !important; text-align: right !important; }
+
+  .score-summary {
+    padding: 2.5mm 8mm !important;
+    display: flex !important;
+    border-bottom: 1px solid #d4d0c8 !important;
+    break-after: avoid !important;
+    background: #fff !important;
+  }
+  .score-bar-item { flex: 1 !important; display: flex !important; flex-direction: column !important; align-items: center !important; gap: 1px !important; padding: 0 4px !important; border-right: 1px solid #d4d0c8 !important; }
+  .score-bar-item:last-child { border-right: none !important; }
+  .score-bar-label { font-size: 7.5pt !important; font-weight: 700 !important; }
+  .score-bar-track { width: 100% !important; height: 3px !important; background: #e8e6e0 !important; border-radius: 2px !important; overflow: hidden !important; }
+  .score-bar-fill { height: 100% !important; border-radius: 2px !important; }
+  .score-bar-num { font-size: 11pt !important; font-weight: 700 !important; }
+  .score-bar-name { font-size: 6.5pt !important; color: #8888aa !important; text-align: center !important; }
+
+  .type-header {
+    padding: 2mm 8mm !important;
+    background: #f3f1ea !important;
+    border-bottom: 2px solid #1a1a2e !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    break-after: avoid !important;
+  }
+  .type-badge-large { font-size: 8pt !important; padding: 1px 8px !important; background: #1a1a2e !important; color: #fff !important; border-radius: 20px !important; white-space: nowrap !important; }
+  .type-summary-text { font-size: 9pt !important; font-weight: 500 !important; color: #3a3a5a !important; }
+  .type-sub { font-size: 7pt !important; color: #8888aa !important; }
+
+  /* グラフコンテナ：Page 1 のみ */
+  #charts-container {
+    padding: 2mm 8mm 2mm !important;
+    background: #fff !important;
+    display: block !important;
+  }
+
+  /* ===== 明示的改ページ ===== */
+  .page-break {
+    display: block !important;
+    page-break-before: always !important;
+    break-before: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  .charts-block {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3mm !important;
+    margin: 0 0 2mm !important;
+  }
+  .chart-card {
+    background: #f7f5ef !important;
+    border-radius: 4px !important;
+    padding: 2.5mm 3mm !important;
+    border: 1px solid #d4d0c8 !important;
+  }
+  .chart-card-full {
+    background: #f7f5ef !important;
+    border-radius: 4px !important;
+    padding: 2mm 3mm !important;
+    border: 1px solid #d4d0c8 !important;
+    margin: 0 !important;
+  }
+  .chart-title { font-size: 7pt !important; font-weight: 700 !important; margin-bottom: 1mm !important; color: #1a1a2e !important; }
+  .chart-subtitle { font-size: 6.5pt !important; margin-bottom: 1mm !important; color: #8888aa !important; }
+
+  .pac-bar-wrap { gap: 1.5px !important; margin-top: 1mm !important; }
+  .pac-row { gap: 4px !important; display: flex !important; align-items: center !important; }
+  .pac-label { font-size: 7.5pt !important; font-weight: 700 !important; width: 14px !important; text-align: right !important; flex-shrink: 0 !important; }
+  .pac-bar-bg { flex: 1 !important; background: #e8e6e0 !important; border-radius: 3px !important; height: 13px !important; overflow: hidden !important; }
+  .pac-bar-fill { height: 100% !important; border-radius: 3px !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; padding-right: 5px !important; }
+  .pac-bar-val { font-size: 7pt !important; font-weight: 700 !important; color: #fff !important; }
+  .pac-bar-label { font-size: 6.5pt !important; color: #8888aa !important; width: 52px !important; flex-shrink: 0 !important; }
+
+  .matrix-cell { padding: 2mm 2.5mm !important; font-size: 7pt !important; line-height: 1.4 !important; }
+  .mc-title { font-size: 7.5pt !important; font-weight: 700 !important; margin-bottom: 0.8mm !important; }
+  .mc-body { font-size: 6.5pt !important; line-height: 1.4 !important; }
+  .matrix-axis-y { font-size: 6.5pt !important; padding: 4px 2px !important; }
+  .matrix-axis-x { font-size: 6.5pt !important; }
+
+  /* ===== ゾーンA（PAGE 1末尾）+ ゾーンB/C（PAGE 2）===== */
+
+  .report-body,
+  #report-body-a,
+  #report-body-bc {
+    padding: 3mm 8mm 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.5mm 3.5mm !important;
+    align-items: start !important;
+  }
+  #report-body-a {
+    padding-bottom: 2mm !important;
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  /* セクション共通 */
+  .report-section {
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 0 !important;
+  }
+
+  .section-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-bottom: 0.8mm !important;
+    padding: 1.2mm 2.5mm !important;
+    border-radius: 3px 3px 0 0 !important;
+  }
+  .section-num {
+    width: 14px !important; height: 14px !important;
+    font-size: 6.5pt !important; flex-shrink: 0 !important;
+    border-radius: 50% !important; display: flex !important;
+    align-items: center !important; justify-content: center !important;
+    font-weight: 700 !important; color: #fff !important;
+  }
+  .section-title-text { font-size: 7.5pt !important; font-weight: 700 !important; color: #1a1a2e !important; }
+  .section-content { padding: 0 2.5mm 1.5mm !important; font-size: 6.5pt !important; line-height: 1.5 !important; color: #3a3a5a !important; }
+  .section-content p { margin-bottom: 0.8mm !important; }
+
+  .note-box {
+    border-left: 2px solid #1a1a2e !important;
+    padding: 1mm 2.5mm !important;
+    border-radius: 0 2px 2px 0 !important;
+    margin-top: 0.8mm !important;
+    font-size: 6.5pt !important;
+    line-height: 1.45 !important;
+    background: #f0ede6 !important;
+  }
+  .note-box.green  { background: #edf7f1 !important; border-color: #2c7a50 !important; }
+  .note-box.gold   { background: #fef6e4 !important; border-color: #b7791f !important; }
+  .note-box.purple { background: #f5eeff !important; border-color: #6b46a0 !important; }
+  .note-box.blue   { background: #e6f1fb !important; border-color: #2c5282 !important; }
+  .note-box strong { font-size: 7pt !important; display: block !important; margin-bottom: 0.3mm !important; }
+
+  .message-box { background: #1a1a2e !important; border-radius: 3px !important; padding: 2mm 3mm !important; }
+  .message-box .msg-title { font-size: 6pt !important; color: rgba(255,255,255,0.5) !important; margin-bottom: 1mm !important; }
+  .message-box .msg-body { font-size: 6.5pt !important; line-height: 1.55 !important; color: #e8e6e0 !important; }
+
+  .action-list { display: flex !important; flex-direction: column !important; gap: 1mm !important; }
+  .action-item { display: flex !important; align-items: flex-start !important; gap: 4px !important; background: #f7f5ef !important; border-radius: 3px !important; padding: 1mm 2.5mm !important; }
+  .action-num { background: #1a1a2e !important; color: #fff !important; border-radius: 50% !important; width: 13px !important; height: 13px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 6pt !important; font-weight: 700 !important; flex-shrink: 0 !important; margin-top: 1px !important; }
+  .action-text { font-size: 6.5pt !important; line-height: 1.45 !important; color: #3a3a5a !important; }
+
+  /* ===== ゾーンラベル ===== */
+  .zone-label {
+    grid-column: 1 / -1 !important;
+    padding: 1.2mm 3mm !important;
+    border-radius: 3px !important;
+    font-size: 6pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.8pt !important;
+    margin-top: 2mm !important;
+    break-after: avoid !important;
+  }
+  .zone-a { background: #2c7a50 !important; color: #fff !important; margin-top: 0 !important; }
+  .zone-b { background: #2c5282 !important; color: #fff !important; }
+  .zone-c { background: #1a1a2e !important; color: #fff !important; }
+
+  /* ===== セクション非表示 ===== */
+  #sec-overview { display: none !important; }
+  .print-hide   { display: none !important; }
+
+  /* ===== ゾーンA「自分を知る」：緑系 ===== */
+  #sec-comm .section-header        { background: #d4ede5 !important; }
+  #sec-comm .section-num           { background: #2c7a50 !important; }
+  #sec-growth .section-header      { background: #e8f4f0 !important; }
+  #sec-growth .section-num         { background: #2c7a50 !important; }
+  #sec-barrier .section-header     { background: #eef7f3 !important; }
+  #sec-barrier .section-num        { background: #3d8f65 !important; }
+
+  /* ===== ゾーンB「関係と仕事」：青系 ===== */
+  #sec-relation .section-header    { background: #d6e8f9 !important; }
+  #sec-relation .section-num       { background: #2c5282 !important; }
+  #sec-work .section-header        { background: #e6f1fb !important; }
+  #sec-work .section-num           { background: #2c5282 !important; }
+  #sec-stress .section-header      { background: #edf2fa !important; }
+  #sec-stress .section-num         { background: #3a6aad !important; }
+  #sec-interpersonal .section-header { background: #e0ecf8 !important; }
+  #sec-interpersonal .section-num  { background: #2c5282 !important; }
+
+  /* ===== ゾーンC「行動へ」：ダーク系 ===== */
+  #sec-message .section-header     { background: #1a1a2e !important; }
+  #sec-message .section-num        { background: rgba(255,255,255,0.2) !important; }
+  #sec-message .section-title-text { color: #fff !important; }
+  #sec-actions .section-header     { background: #1a1a2e !important; }
+  #sec-actions .section-num        { background: rgba(255,255,255,0.2) !important; }
+  #sec-actions .section-title-text { color: #fff !important; }
+  #sec-stroke .section-header      { background: #2e2e4a !important; }
+  #sec-stroke .section-num         { background: rgba(255,255,255,0.25) !important; }
+  #sec-stroke .section-title-text  { color: #e8e6e0 !important; }
+
+  /* ===== グリッド配置（IDベース） ===== */
+  /* 全幅：ゾーンラベル・1・7・9・10 */
+  #sec-comm         { grid-column: 1 / -1 !important; }
+  #sec-message      { grid-column: 1 / -1 !important; }
+  #sec-actions      { grid-column: 1 / -1 !important; }
+  #sec-stroke       { grid-column: 1 / -1 !important; }
+  /* 2列ペア：2+3 / 4+5 / 6+8（HTMLの出力順で制御） */
+
+  .section-content strong { font-weight: 700 !important; color: #1a1a2e !important; }
+
+  /* ===== PAGE 3: 役職別インサイト（.page-break#page-break-role の直後）===== */
+  #role-body {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2mm 3.5mm !important;
+    align-items: start !important;
+    padding: 3mm 8mm 0 !important;
+  }
+  #role-body:empty { display: none !important; }
+
+  .role-header-section {
+    grid-column: 1 / -1 !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  .role-header-section .section-header {
+    border-radius: 4px 4px 0 0 !important;
+    padding: 2mm 3mm !important;
+  }
+  .role-theme-section {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .role-theme-section .section-header {
+    border-radius: 4px 4px 0 0 !important;
+    padding: 1.2mm 2.5mm !important;
+    margin-bottom: 0.8mm !important;
+  }
+  .role-theme-section .section-title-text {
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+  }
+
+  /* ===== 価値観バランス（左:レーダー / 右:テキスト の2カラム）===== */
+  #values-body { padding: 0 8mm !important; }
+  #values-body .values-section {
+    padding: 2mm 0 2mm !important;
+    border-bottom: 1px solid #d4d0c8 !important;
+  }
+  #values-body .values-header { margin-bottom: 3mm !important; }
+  #values-body .values-title { font-size: 8pt !important; }
+  #values-body .values-badge { font-size: 6pt !important; }
+  .values-cols { display: flex !important; align-items: flex-start !important; gap: 10px !important; overflow: hidden !important; }
+  .values-chart-cell { float: none !important; flex: 0 0 34% !important; width: 34% !important; height: auto !important; aspect-ratio: 1 !important; margin-right: 0 !important; overflow: hidden !important; }
+  #valuesRadarChart { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; }
+  .values-text-cell { flex: 0 0 calc(42% - 10px) !important; width: calc(42% - 10px) !important; min-width: 0 !important; overflow: hidden !important; padding-top: 2px !important; }
+  .values-text-cell div { font-size: 6.5pt !important; line-height: 1.45 !important; margin-bottom: 1mm !important; }
+  .values-text-cell span { font-size: 6.5pt !important; }
+  #values-body .values-note {
+    font-size: 6.5pt !important;
+    line-height: 1.45 !important;
+    margin-bottom: 1.5mm !important;
+  }
+  #values-body .values-note strong { font-size: 7pt !important; }
+}
+
+.charts-block{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:24px 0 8px}
+.values-cols{display:flex;align-items:flex-start;gap:20px;overflow:visible}
+.values-chart-cell{flex:0 0 min(380px,45%);width:min(380px,45%);aspect-ratio:1;position:relative}
+.values-text-cell{flex:1;min-width:0;padding-top:4px}
+.chart-card{background:#f7f5ef;border-radius:8px;padding:18px 16px}
+.chart-card-full{background:#f7f5ef;border-radius:8px;padding:18px 16px;margin:16px 0 8px}
+.chart-title{font-family:"Noto Serif JP",serif;font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:12px;letter-spacing:.03em}
+.chart-subtitle{font-size:11px;color:#8888aa;margin-bottom:10px}
+canvas{display:block}
+.matrix-wrap{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:8px;border:1.5px solid #1a1a2e;border-radius:6px;overflow:hidden}
+.matrix-cell{padding:14px 12px;font-size:12px;line-height:1.6;color:#3a3a5a}
+.matrix-cell.highlight{background:#1a1a2e;color:#fff}
+.matrix-cell strong{display:block;font-size:13px;margin-bottom:4px}
+.matrix-axis-y{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;color:#8888aa;text-align:center;padding:8px 4px;background:#f0ede6;display:flex;align-items:center;justify-content:center}
+.matrix-outer{display:grid;grid-template-columns:28px 1fr;gap:0;margin-top:8px}
+.matrix-axis-x{display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:11px;color:#8888aa;text-align:center;padding:4px 0 0}
+.page-break{display:none}
+/* 価値観バランス */
+.values-section{padding:10px 44px 16px;border-bottom:1px solid var(--border)}
+.values-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.values-title{font-family:'Noto Serif JP',serif;font-size:13px;font-weight:700;color:var(--ink)}
+.values-badge{font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:#f0ede6;color:var(--light);border-radius:10px;padding:2px 8px}
+.val-bar-wrap{display:flex;flex-direction:column;gap:6px}
+.val-bar-row{display:flex;align-items:center;gap:8px}
+.val-bar-label{font-size:11px;font-weight:700;width:20px;text-align:right;flex-shrink:0}
+.val-bar-bg{flex:1;background:#e8e6e0;border-radius:3px;height:22px;overflow:hidden}
+.val-bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;transition:width .6s ease}
+.val-bar-val{font-size:11px;font-weight:700;color:#fff}
+.val-bar-desc{font-size:10px;color:var(--light);width:140px;flex-shrink:0}
+.values-note{margin-top:10px;font-size:12px;line-height:1.9;color:var(--mid);background:#f7f5ef;border-radius:6px;padding:10px 14px}
+.values-note strong{color:var(--ink)}
+.pac-bar-wrap{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.pac-row{display:flex;align-items:center;gap:10px}
+.pac-label{font-size:11px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.pac-bar-bg{flex:1;background:#e8e6e0;border-radius:4px;height:28px;position:relative;overflow:hidden}
+.pac-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .6s ease}
+.pac-bar-val{font-size:12px;font-weight:700;color:#fff}
+.pac-bar-label{font-size:11px;color:#8888aa;width:72px;flex-shrink:0}
+
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <div class="input-panel">
+    <div class="panel-header">
+      <div class="panel-title">エゴグラム<br>レポート生成</div>
+      <div class="panel-sub">Egogram Report Generator</div>
+    </div>
+    <div class="free-badge">✅ APIキー不要・完全オフライン動作</div>
+    <div>
+      <div class="section-label">対象者情報</div>
+      <div class="field-group">
+        <div class="field-row"><div class="field-label">氏名</div><input class="field-input" id="name" type="text" placeholder="例：山田 太郎"></div>
+        <div class="field-row"><div class="field-label">実施日</div><input class="field-input" id="date" type="date"></div>
+        <div class="field-row"><div class="field-label">所属・部署（任意）</div><input class="field-input" id="dept" type="text" placeholder="例：営業部"></div>
+        <div class="field-row"><div class="field-label">役職区分</div>
+          <select class="field-input" id="role">
+            <option value="">— 選択（任意）—</option>
+            <option value="管理職">管理職</option>
+            <option value="一般">一般</option>
+            <option value="若手">若手</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">エゴグラム スコア（0〜20）</div>
+      <div class="score-items">
+        <div class="score-item">
+          <div class="score-name cp-color">CP <span class="score-desc">批判的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="cp-slider" min="0" max="20" value="10" style="--c:var(--cp)" oninput="syncScore('cp',this.value)">
+            <input type="number" class="score-number" id="cp-num" min="0" max="20" value="10" oninput="syncScore('cp',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name np-color">NP <span class="score-desc">養育的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="np-slider" min="0" max="20" value="10" style="--c:var(--np)" oninput="syncScore('np',this.value)">
+            <input type="number" class="score-number" id="np-num" min="0" max="20" value="10" oninput="syncScore('np',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name a-color">A <span class="score-desc">大人の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="a-slider" min="0" max="20" value="10" style="--c:var(--a)" oninput="syncScore('a',this.value)">
+            <input type="number" class="score-number" id="a-num" min="0" max="20" value="10" oninput="syncScore('a',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name fc-color">FC <span class="score-desc">自由な子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="fc-slider" min="0" max="20" value="10" style="--c:var(--fc)" oninput="syncScore('fc',this.value)">
+            <input type="number" class="score-number" id="fc-num" min="0" max="20" value="10" oninput="syncScore('fc',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name ac-color">AC <span class="score-desc">順応した子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="ac-slider" min="0" max="20" value="10" style="--c:var(--ac)" oninput="syncScore('ac',this.value)">
+            <input type="number" class="score-number" id="ac-num" min="0" max="20" value="10" oninput="syncScore('ac',this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generateReport()">　レポートを生成する　</button>
+  </div>
+
+  <div class="report-panel">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">スコアを入力してください</div>
+      <div class="empty-desc">氏名・実施日・CP〜ACのスコアを入力して「レポートを生成する」を押してください。<br>APIキー不要でご利用できます。</div>
+    </div>
+    <div id="report-output">
+      <div class="report-document" id="report-doc">
+        <div class="report-header">
+          <div>
+            <div class="report-label">Egogram Analysis Report</div>
+            <div class="report-main-title">エゴグラム分析レポート（役職別）</div>
+          </div>
+          <div class="report-meta" id="report-meta"></div>
+        </div>
+        <div class="score-summary" id="score-bar"></div>
+        <div class="type-header" id="type-header"></div>
+        
+        <div id="charts-container" style="padding:0 44px 4px">
+          <!-- Chart 1: レーダーチャート + PAC積み上げバー -->
+          <div class="charts-block">
+            <div class="chart-card">
+              <div class="chart-title">自我状態バランス（スコアグラフ）</div>
+              <div class="chart-subtitle">5つの自我状態のスコアと傾向</div>
+              <div style="position:relative;height:200px"><canvas id="radarChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">P・A・C エネルギー構造</div>
+              <div class="chart-subtitle">親・大人・子どもの3層バランス</div>
+              <div id="pac-bars" class="pac-bar-wrap"></div>
+            </div>
+          </div>
+          <!-- Chart 3: 人生態度マトリクス -->
+          <div class="chart-card-full">
+            <div class="chart-title">人生態度マトリクス（あなたの現在地）</div>
+            <div class="chart-subtitle">CP・NP・FC・ACのバランスから読み取る、対人・自己への基本姿勢</div>
+            <div id="life-matrix"></div>
+          </div>
+        </div>
+
+        <div id="values-body" style="display:none">
+          <div class="values-section">
+            <div class="values-header">
+              <div class="values-title">価値観バランス（基本的欲求）</div>
+              <div class="values-badge">Values Test</div>
+            </div>
+            <div class="values-cols">
+              <div class="values-chart-cell">
+                <canvas id="valuesRadarChart" width="380" height="380"></canvas>
+              </div>
+              <div class="values-text-cell" id="values-text-content"></div>
+            </div>
+          </div>
+        </div>
+        <div class="report-body" id="report-body-a"></div>
+        <div class="report-body" id="report-body-bc"></div>
+        <div class="page-break" id="page-break-role" style="display:none"></div>
+        <div id="role-body"></div>
+      </div>
+      <div class="action-bar">
+        <button class="action-btn" onclick="generateReport()">🔄 再生成</button>
+        <button class="action-btn primary" onclick="doPrint()">🖨️ 印刷／PDFで保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  マスタデータ（15タイプ × 全項目）
+// ============================================================
+var TYPE_MASTER = {
+  "CP-A": {
+    name:"統率リーダータイプ", summary:"責任感と合理性で場をリードする",
+    commType:"基準と筋道を軸に、明確な結論を届けるコミュニケーターです。「こうあるべき」という価値観と「なぜそうなるか」という論理がかみ合うとき、説得力が最大化します。ただし、伝え方が直球すぎると批判的・高圧的に受け取られやすいため、「理由と感謝」をセットで添えることが信頼を深めます。",
+    commAdvice:"①相手の言葉をひと言繰り返してから自分の意見を述べる「受け止め→主張」の順番を習慣に。②「〜すべき」を「〜するとうまくいくと思う」に置き換えてみる。③月に一度、チームへの感謝を具体的な言葉にして伝える。",
+    growth:"目標と責任範囲が明確な環境で本領を発揮します。自分なりの「正解」を持ち、それに向かって粘り強く動ける力は大きな武器です。また、論理的に物事を整理する力があるため、経験を再現性ある知識に変えることが得意です。成功体験を言語化して周囲に伝えることで、自分自身の成長も加速します。",
+    barrier:"「正しさ」への強いこだわりが、柔軟性の妨げになることがあります。自分の基準に合わない行動やプロセスに対してストレスを感じやすく、それが批判的な言動として表れると、周囲が萎縮してしまうリスクがあります。また、完璧を求めるあまり、決断や行動が遅れる場面も出やすいです。",
+    relation:"公平さと明確な役割分担を好み、「できる人・できない人」を無意識に評価しやすいタイプです。期待に応えてくれる相手には信頼を厚くしますが、期待が外れると距離を置く傾向も。温かみのある言葉を意識的に加えることで、人間関係の幅が広がります。",
+    work:"成果と再現性を重んじ、段取りと品質にこだわります。計画立案・問題解決・基準づくりが得意な一方、変化の速い状況や曖昧なゴールに対しては不安を感じやすい面もあります。「完璧な計画」より「動きながら修正」のサイクルを取り入れると、さらに力を発揮できます。",
+    stress:"非効率・ルール逸脱・無責任な言動に強いストレスを感じます。ストレスサインは「口数が増え批判的になる」か「逆に無口になり孤立する」の両極に出やすいです。対処法：①怒りを感じたら「なぜ自分はこれを重要視しているか」を紙に書く。②15分の一人時間を意図的に作る。",
+    message:"あなたの責任感と誠実さは、周囲の安心と信頼の土台になっています。ときに厳しく映ることがあっても、その奥にある「よくしたい」という想いは本物です。まず、今の自分をそのまま認めてください。そのうえで、「正しさ」だけでなく「温かさ」も一緒に届けることで、あなたのリーダーシップはさらに輝きます。",
+    interpersonal:"上司には：根拠と結論をセットで報告すると評価されやすい。「なぜそう判断したか」を簡潔に添えることで信頼が増します。同僚には：自分の意見を述べる前に「それはいいね」「確かに」など受け止めの言葉を一言入れると、建設的な対話になりやすい。部下・後輩には：指摘の後に「あなたならできる」という期待の言葉をセットにすると、叱責ではなく育成として伝わります。",
+    actions:["「〜すべき」という言葉を使ったとき、代わりに「〜してみるといいかも」と言い直す練習を1日3回行う","誰か一人に具体的な感謝の言葉を伝える（内容・理由を添えて）","今週の「こだわりポイント」を一つ手放してみる"],
+    stroke:"責任感・判断の的確さ・やり遂げる力を、具体的なエピソードと共に認める言葉が響きます。"
+  },
+  "CP-NP": {
+    name:"熱血指導者タイプ", summary:"厳しさと優しさで人を育てる",
+    commType:"「相手に成長してほしい」という強い願いを持つコミュニケーターです。期待と愛情が混在するため、伝わるときは大きなモチベーションになりますが、伝わらないときは「押しつけ」や「お節介」に見えることもあります。「あなたのためを思って」より「一緒に考えたい」という姿勢が共感を生みます。",
+    commAdvice:"①フィードバックの前に「今、少し話してもいい？」と確認する一言を添える。②相手の行動を「悪い→改善」ではなく「いい点→さらに良くするには」の順で伝える。③指導後に「自分ならどうする？」と相手に考えさせる問いを投げかける。",
+    growth:"人の成長に喜びを感じ、育成場面で本領を発揮します。厳しさと温かさの両方を持っているため、相手の「本気」を引き出す力があります。自分の経験を惜しみなく伝えようとする姿勢が、チームの財産になります。期待に応えてくれた相手に対しては、深い信頼関係を築けます。",
+    barrier:"期待値が高いため、相手がそれに届かないと失望や苛立ちを感じやすいです。「もっとできるはず」という思いが、相手にはプレッシャーになっている場合があります。また、「自分が正しい育て方を知っている」という信念が、相手の個性やペースを尊重しにくくすることも。",
+    relation:"面倒見がよく、困っている人を放っておけないタイプです。深く関わる分、関係が濃くなりますが、相手が自分の期待通りに動かないと傷つきやすくなります。「関わりすぎず、でも見捨てない」距離感を意識すると、長続きする良好な関係が生まれます。",
+    work:"育成・指導・改善提案に情熱を注ぎます。チームの底上げや、後輩の成長を実感できる仕事で最もやりがいを感じます。一方で、評価されない・感謝されないと徒労感を感じやすく、燃え尽きることも。「相手の成長は自分のギフト」という視点を持つと、自分も楽になります。",
+    stress:"思いが伝わらない、期待を裏切られる、不誠実な言動を見る、といった場面でストレスが高まります。ストレスサインは「説教が長くなる」「感情的に叱責する」「急に引きこもる」として表れやすいです。対処法：①「期待通りでなくてOK」と自分に言い聞かせる。②怒りを感じたら24時間置いてから伝える。",
+    message:"あなたの「この人に良くなってほしい」という想いは、本物の愛情です。厳しい言葉も、その奥には相手への信頼があります。ただ、伝わり方が全てです。今のあなたに必要なのは、相手のペースを信じて「待つ勇気」を持つことかもしれません。あなたの情熱は必ず誰かの力になっています。",
+    interpersonal:"上司には：「ご指導いただいたことを試してみました」という報告が最大の信頼構築になります。結果だけでなくプロセスも共有する。同僚には：アドバイスを求められたときだけ伝える「引き算の関わり」を意識する。部下・後輩には：指導後に「自分はどう思う？」と問いかけ、相手自身の考えを引き出す場を作る。",
+    actions:["今日、誰かの「良い点」を一つ声に出して伝える（改善点ではなく肯定から始める）","フィードバック時に「私はこう思う」という主語を使い、決めつけの言葉を避ける","相手が自分の期待と違う行動をしたとき、「なぜそうしたか」を先に聞いてみる"],
+    stroke:"育成への貢献・相手が成長した瞬間への喜び・情熱の深さを言葉で伝えると響きます。"
+  },
+  "CP-FC": {
+    name:"理想追求タイプ", summary:"正しさと情熱で変化を起こす",
+    commType:"理想と熱量を持ち、「こうあるべき」と「こうしたい！」が合わさった強いエネルギーで動くタイプです。改革や新しいことへの発信力は抜群ですが、勢いが強すぎると周囲が「ついていけない」と感じることも。伝える前に「相手は今どこにいるか」を一度確認するだけで、反応が大きく変わります。",
+    commAdvice:"①「こうすべき」の前に「今の状況をどう思う？」と相手の視点を聞く。②熱量を出す場面と聴く場面を意識的に使い分ける。③反対意見を「敵」ではなく「別の視点」として受け取る練習をする。",
+    growth:"変革を恐れず、信念を持って動ける力は大きな強みです。自分の「正しい」と思うことに向かう推進力は、硬直した組織や状況を動かすきっかけになります。自由な発想と責任感が組み合わさることで、単なる「やりたい」ではなく「やり遂げる」力に変わります。",
+    barrier:"「自分の理想が正しい」という確信が強すぎると、他者の意見を退けて孤立しやすくなります。また、熱しやすく、状況が思い通りにいかないと一気にエネルギーが落ちることも。「正しい」と「うまくいく」は別物という視点を持つことが、継続的な行動につながります。",
+    relation:"強い主張と情熱で引っ張るタイプです。共鳴してくれる人とは深い信頼関係を作りますが、考えが合わない人とは摩擦が起きやすいです。「反論=攻撃」ではなく「反論=関心の表れ」と捉えると、人間関係の幅が広がります。",
+    work:"理想の実現に向けて突破力を発揮します。新しいことへのチャレンジ、改革、ゼロからの立ち上げが得意です。ルーティンや管理業務は苦手なことが多く、制約の多い環境では強いストレスを感じます。「自分の役割」と「得意でないこと」を分業する仕組みを持てると、より力を発揮できます。",
+    stress:"自分の理想や信念が否定される、制約だらけで動けない、努力が無視される、といった場面でストレスが爆発しやすいです。ストレスサインは「言動が攻撃的になる」「急に投げ出す」として表れます。対処法：①信頼できる人に話を聴いてもらう。②「今変えられること」と「今は変えられないこと」を書き分ける。",
+    message:"あなたの情熱と正義感は、周囲が見えていない未来を照らす力を持っています。うまくいかないときも、あなたが動こうとする姿勢そのものが誰かの勇気になっています。今のエネルギーを大切に、「仲間を作る」ことに少しだけ意識を向けてみてください。一人の情熱は、共感者と出会ったとき、何倍にもなります。",
+    interpersonal:"上司には：「実現したいビジョン」と「現実的な第一歩」をセットで提案する。いきなり全体像より「まず小さく試す」という切り口が通りやすい。同僚には：自分の意見を述べた後に「どう思う？」と一言加えるだけで、対話が生まれる。部下・後輩には：自分の熱量を押しつけず、「一緒にやってみない？」という誘いのスタイルで巻き込む。",
+    actions:["今日の会話で「相手の意見を最後まで聞いてから自分の意見を言う」を1回実践する","自分が変えたいことを「3ヶ月でできること」に絞って書き出す","信頼できる人に「最近の自分はどう見える？」と正直に聞いてみる"],
+    stroke:"情熱・信念の強さ・行動力を、具体的な場面と共に認める言葉が響きます。"
+  },
+  "NP-A": {
+    name:"サポートリーダータイプ", summary:"思いやりと冷静さで場を支える",
+    commType:"相手の気持ちに寄り添いながら、現実的な解決策を提示できるバランス型のコミュニケーターです。感情と論理の両方を使えるため、幅広い相手と話しやすい関係を作れます。ただし、全方位に気を使いすぎると、自分の意見を発信するタイミングを逃すことも。「配慮しながらも、はっきり伝える」姿勢が、さらなる信頼につながります。",
+    commAdvice:"①「〜だと思いますが、いかがですか？」という提案型の言い方で自分の意見を表明する。②ミーティングでは最初か最後に一言、自分の考えを必ず述べる。③NOと言う練習：「今は難しいですが、〜なら対応できます」というセットで断る。",
+    growth:"信頼関係が整った環境で安定した成長を見せます。感情と論理を使い分けられるため、対人関係でも問題解決でも力を発揮します。特に、チームや組織の「まとめ役・調整役」として置かれると本領を発揮し、そこで得た経験がさらなる成長の糧になります。",
+    barrier:"自分より他者を優先しすぎて、疲弊することがあります。「頼まれたら断れない」「問題を自分で抱える」パターンに陥りやすく、気づいたときには限界を超えていることも。「自分を守ることは、周囲を守ること」という視点が自己ケアの第一歩です。",
+    relation:"調整役・橋渡し役として信頼されやすく、チームに安心感をもたらします。ただし、全員のニーズに応えようとすると板挟みになりやすいため、「今の自分には何が無理か」を言語化する習慣が関係の長続きにつながります。",
+    work:"人と成果の両立を自然に考えるタイプです。現場の調整や、複数の視点を統合する作業が得意です。一方で、対立が激しい環境や感情的な場面では消耗しやすいため、自分のペースを守るルール作りが重要です。",
+    stress:"板挟み・感情的な対立・期待過多が重なるとストレスが蓄積します。外からは穏やかに見えるため、周囲が気づかないまま消耗が進みやすいです。ストレスサインは「笑顔が減る」「返答が遅くなる」として表れます。対処法：①週に一度「今週の自分の感情」を振り返る。②「頼まれたらとりあえず引き受ける」をやめる。",
+    message:"あなたの穏やかさと誠実さは、気づかないうちに多くの人の支えになっています。頑張りすぎているとき、それは「強さ」ではなく「我慢」のサインかもしれません。まず、自分自身を大切にしてください。あなたが満たされていると、あなたの周りももっと明るくなります。",
+    interpersonal:"上司には：気になることはメモにまとめて1対1の場で伝える。感情より事実ベースで話すと受け取られやすい。同僚には：相手の話を聞いた後に「自分はこう感じた」という感情も共有すると、より深い信頼関係が生まれる。部下・後輩には：「どうしたい？」と先に聞いてから支援の方向を決めると、依存ではなく自立を促す関わりになる。",
+    actions:["今日、一つだけ「NO」か「今は難しい」と言う練習をする","自分の意見を会話の中で一度は主語を「私は」にして伝える","週末に10分、自分の気持ちをノートに書き出す時間を作る"],
+    stroke:"支援力・調整力・場への貢献を、具体的な場面を添えて伝えると響きます。"
+  },
+  "NP-AC": {
+    name:"包容力タイプ", summary:"寄り添いと忍耐で人を支える",
+    commType:"相手の話をじっくり聴き、安心感を与えることが得意なコミュニケーターです。受け止める力が高い分、自分の意見や感情を後回しにしがちです。「聴く」だけでなく「伝える」ことも関係の深さにつながると知ると、対話の質がさらに高まります。",
+    commAdvice:"①会話の最後に「自分はこう感じた」を一文加える習慣をつける。②何かを断るとき「今は難しいですが、〜ならできます」という言い方を使う。③不満を感じたとき、その日のうちに信頼できる人に話す。",
+    growth:"感謝と安心が循環する環境で大きく伸びます。相手の気持ちに寄り添う力、黙って支える力は、チームや組織の「感情的な土台」を作ります。小さなサポートが積み重なって大きな信頼になるプロセスを経験すると、自己効力感が高まります。",
+    barrier:"我慢して抱え込みすぎるのが最大のリスクです。「言わなくてもわかってくれるはず」「迷惑をかけたくない」という思いが、孤独感や燃え尽きにつながることがあります。また、自分の要求を表現しないままでいると、「何を考えているかわからない」と誤解されることも。",
+    relation:"相手を認め、受け止める温かい関係を築きます。深く信頼した相手には誠実に応えますが、その分、裏切られたと感じたときのダメージが大きいです。期待を言葉にして共有する練習が、関係を長続きさせるカギです。",
+    work:"縁の下の力持ちとして、チームを安定させます。サポート・調整・フォロー業務で本来の力を発揮します。表に出る仕事や、成果を個人で競う環境は苦手なことが多いです。自分の貢献が「見えにくい」と感じやすいため、定期的に上司や仲間からフィードバックをもらう仕組みを作ると安定します。",
+    stress:"対立・冷たい対応・感謝されない状況が続くとストレスが蓄積します。外からは穏やかに見えるため、周囲が限界に気づきにくいです。ストレスサインは「急に元気がなくなる」「返事が遅くなる」「食欲や睡眠に変化が出る」として表れます。対処法：①週に1回、自分の「本音」を誰かに話す。②「してあげたこと」を記録して自分の貢献を可視化する。",
+    message:"あなたの「相手を大切にしたい」という気持ちは、本当に誰かの心を温めています。でも、あなた自身も温められる必要があります。自分の気持ちや要求を口に出すことは、わがままではありません。それはむしろ、より深い関係を作るための一歩です。今日、一つだけ「自分がしたいこと」を声に出してみてください。",
+    interpersonal:"上司には：定期的に1on1の機会を作ってもらい、小さな変化や感情も共有する。サインを出し続けることが大切。同僚には：「助けてほしい」と言える相手を一人作る。自分から打ち明けることが信頼を深める。部下・後輩には：「何かあったら言ってね」だけでなく「最近どう？」と先から声をかける習慣を持つ。",
+    actions:["今日、自分の「してほしいこと」を一つだけ誰かに伝える","不満を感じた瞬間に、その場でメモする（後で整理して伝えるため）","週に一度、自分が「助けられたこと」を振り返り、感謝を届ける"],
+    stroke:"安心感・気配り・見えにくい貢献を丁寧に、具体的な場面とともに言葉にすると届きます。"
+  },
+  "NP-FC": {
+    name:"ムードメーカータイプ", summary:"温かさと明るさで場に活力を与える",
+    commType:"感情表現が豊かで、その場の雰囲気を明るくする天性のコミュニケーターです。共感力と楽しさの両方を持つため、初対面の人とも自然に距離を縮められます。ただし、場を盛り上げることに集中しすぎると、大事な話が軽く流れることも。「楽しくかつ届く」メッセージの組み立てを意識すると、さらに影響力が増します。",
+    commAdvice:"①大事なことを伝えるときは「少し真剣に聞いてほしいのだけど」と前置きする。②楽しい会話の後に「今日のポイントは〇〇だった」と一言まとめを添える。③ネガティブな感情も「実はね…」と正直に話せる関係を一人作る。",
+    growth:"人と関わりながら、反応と刺激を受けることで成長するタイプです。自由度が高く、自分らしさを発揮できる環境で最大の力を出します。「人を元気にした」という実感が次の行動のエネルギーになるため、自分の影響を受け取りやすい環境・役割に身を置くと伸びやすいです。",
+    barrier:"「楽しさ」を優先するあまり、詰めや継続が甘くなりやすいです。熱しやすく冷めやすいため、新しいことへの関心が次々生まれると、未完了のことが積み重なることも。「やりたいことリスト」より「やり切ることリスト」を持つ意識が、成長を安定させます。",
+    relation:"誰とでも自然に仲良くなれる一方、深い関係を維持するには「楽しいだけでなく、悩みや弱さも共有できる場」を意識的に作ることが大切です。軽いつながりが多くなると、孤独感を感じる場面も出やすいです。",
+    work:"場の活性化・チームの元気づけ・巻き込みが得意です。単調な作業や暗い雰囲気の職場では力を出しにくく、急速にモチベーションが下がります。自分が楽しいと感じる仕事と、組織が求めることを結びつけるストーリーを持てると、仕事への向き合い方が安定します。",
+    stress:"閉塞感・否定・感情を抑圧される状況でストレスが高まります。ストレスサインは「テンションが急に落ちる」「笑顔が消える」として表れやすく、変化が大きいため周囲が気づきやすい半面、本人は「感情の波が激しい」と自己嫌悪になることも。対処法：①気分転換になる「定番リスト」を作って手元に置く。②落ち込んだとき「一時的な状態だ」と自分に言い聞かせる。",
+    message:"あなたの明るさと温かさは、誰かの「今日も頑張れる」という気持ちに直結しています。それは才能です。落ち込む日も、テンションが出ない日も、それはあなたの弱さではありません。感情のアップダウンは、あなたが豊かに生きている証拠です。そのままの自分を受け入れながら、「楽しむ」ことを自分に許してあげてください。",
+    interpersonal:"上司には：報告は「結論→理由→感情」の順で。明るさの中にも「真剣さ」が見えると信頼が増す。同僚には：冗談の中に「実は気になってた」という本音を一言混ぜると、より深い対話が生まれる。部下・後輩には：ほめるだけでなく、具体的に「この行動がよかった」と行動に焦点を当てると育成効果が高まる。",
+    actions:["今日、笑顔で感謝を伝える相手を一人決める","やりかけのことを一つ「今週中に完了する」と決めて宣言する","落ち込んだとき用の「元気リスト（好きな音楽・場所・言葉）」を書き出す"],
+    stroke:"明るさ・場への貢献・周囲への好影響を、具体的な場面と一緒に伝えると響きます。"
+  },
+  "A-CP": {
+    name:"戦略タイプ", summary:"冷静な分析と基準で成果を出す",
+    commType:"事実と論理を軸に、的確に整理して伝えるタイプです。結論が明確で無駄のない伝え方は、合理的な相手には高く評価されます。ただし、感情的な文脈や「気持ちを聴いてほしい」という相手には、「冷たい」「正論すぎる」と映ることも。データや分析の後に「あなたはどう感じた？」の一言を加えると、人間関係が温かくなります。",
+    commAdvice:"①事実を述べた後に「あなたはどう感じた？」と感情を聴く一言を加える。②反論するときは「おっしゃる通りで、その上で」という受け止めから始める。③会議や対話の最後に「今日の話で一番大事だったのは何？」と全体をまとめる習慣をつける。",
+    growth:"目標・評価基準・情報が明確な環境で最大の力を発揮します。論理的に問題を分解し、解決策を組み立てる能力は高く、複雑な状況でも冷静に動けます。自分の分析を他者に伝えてフィードバックをもらうことで、精度がさらに上がります。",
+    barrier:"正論が先立ち、相手の感情や状況への配慮が後回しになりやすいです。「正しいことを言っているのに伝わらない」という経験が増えると、孤立感につながることも。論理の正確さと同じくらい、「相手が受け取れるか」を重視する視点が成長のカギです。",
+    relation:"感情より論点を重視し、建設的に整理する関係を好みます。信頼した相手には誠実に向き合いますが、感情的・非論理的な言動が続く相手とは距離を置きやすいです。「感情は非論理ではなく、別の情報だ」という視点が人間関係を広げます。",
+    work:"計画・分析・改善に強く、成果志向が高いです。PDCAを自然に回せるため、仕事の質が高い一方、ルーティンを超えた「感情的な仕事（関係づくり・共感）」には疲れを感じやすいです。",
+    stress:"非合理・曖昧・感情論・非効率にストレスを感じます。ストレスサインは「無口になる」「皮肉が増える」「完璧主義が強まる」として表れます。対処法：①「感情は情報だ」と捉え直し、自分の感情を日記に書く。②あえて「非効率な時間（散歩・雑談）」を意図的にとる。",
+    message:"あなたの分析力と精度への誠実さは、確実に組織の質を上げています。「正しい」だけでなく「伝わる」を目指したとき、あなたの影響力は何倍にも広がります。感情を大切にすることは、論理を捨てることではありません。感情も「データ」だと思えたとき、あなたの世界はさらに広くなるはずです。",
+    interpersonal:"上司には：数字・事実・提案をセットにした報告が最も評価される。感情も「現場の温度感」として添えると信頼が増す。同僚には：分析を共有するとき「どう思う？」と聞く一言を加えると、一方的な伝達から対話に変わる。部下・後輩には：「こうすべき」より「こうすると数字がこうなる。どうする？」と選択肢を提示する形が自立を促す。",
+    actions:["今日の会話で一度、相手の感情を「そうか、〜と感じたんだね」と言葉にして受け止める","仕事の振り返りで「結果」だけでなく「気づき」と「感じたこと」も書く","休憩時間に目的のない雑談を5分だけ意図的にする"],
+    stroke:"分析力・論理の精度・冷静な判断を、具体的な場面とともに認めると響きます。"
+  },
+  "A-NP": {
+    name:"バランスタイプ", summary:"冷静と温かさを自然に両立する",
+    commType:"公平で穏やかに話を聴き、必要な情報を整理して返せるバランス型のコミュニケーターです。感情的にならず、かつ冷たくもないため、多くの人が「話しやすい」と感じます。ただし、穏やかすぎて「何を考えているかわからない」と思われることも。意見を問われた場面では、はっきりした立場を示すことが信頼をさらに高めます。",
+    commAdvice:"①「どちらでも」ではなく「どちらかといえば〜かな」という形で意見を出す。②感謝や共感の言葉を、もう一歩具体的に（「助かった」だけでなく「あの場面で◯◯してくれたのが助かった」）。③議論が煮詰まったとき、全体を整理する役を積極的に引き受ける。",
+    growth:"落ち着いた環境と信頼関係の中で、着実に伸びていくタイプです。偏りなく物事を見る力は、組織のバランサーとして機能します。複数の視点を統合して「全体最適」を考える力が強みで、その力を活かせる役割に就くと大きく成長します。",
+    barrier:"感情を表に出さないため、周囲から「本当は何を考えているのか」と距離を感じさせることがあります。また、バランスをとりすぎて自分の意見が薄まり、存在感が弱くなることも。「全体最適」への意識が強いあまり、自分の軸を見失わないよう注意が必要です。",
+    relation:"信頼感が高く、多くの人に相談されやすいタイプです。ただし、全員に対して中立でいようとすると、深い関係を築きにくくなることも。「この人には本音を言える」という関係を意識的に作ることが、自分自身の充実にもつながります。",
+    work:"偏りなく全体を見て、最適解を出すことが得意です。計画・調整・振り返りに強く、安定したチームワークを生み出します。感情的な対立が激しい職場では消耗しやすいため、自分のペースを守る仕組みを持つことが重要です。",
+    stress:"感情的な圧・不公平な扱い・理不尽な状況で静かにストレスが溜まります。外からは落ち着いて見えるため、周囲が気づかず、積み重なって一気に疲弊することがあります。ストレスサインは「無口になる」「笑顔が減る」として表れます。対処法：①「何が自分にとって不公平だったか」を書き出す。②信頼できる人に「実は…」と話す場を持つ。",
+    message:"あなたの公平さと誠実さは、気づかないうちにチームの安定を作り出しています。穏やかであることは、強さのひとつです。ただ、あなた自身の感情や意見にも、もっと正直でいていい。「自分はこう思う」という声を上げることが、周囲にとっても安心の材料になります。",
+    interpersonal:"上司には：「整理すると〜という状況です」と全体像を示す提言が高く評価される。同僚には：対立している二人の間で「両方の視点をまとめると…」と橋渡し役を担うと信頼が深まる。部下・後輩には：指示だけでなく「なぜそうするのか」という背景を一言添えると、自立した行動を促せる。",
+    actions:["今日、意見を求められたとき「どちらでも」ではなく「私はこちらかな」と答える","感謝を伝える際に「どの行動が」「なぜ助かったか」まで具体的に言葉にする","週末に「今週の自分が頑張ったこと」を3つ書き出す"],
+    stroke:"公平さ・落ち着き・場をまとめる力を、具体的な場面と共に丁寧に伝えると響きます。"
+  },
+  "A-FC": {
+    name:"研究者タイプ", summary:"知的好奇心と独自の視点で切り開く",
+    commType:"分析しながら新しい発想を出すユニークなコミュニケーターです。「なぜ？」「どうすれば？」という探求の姿勢が、会話に深みを与えます。ただし、思考が先走り、相手の理解スピードとズレることも。「今、相手はどこまで来ているか」を確認しながら話す習慣が、伝わる対話につながります。",
+    commAdvice:"①複雑な話をするとき、最初に「結論から言うと〇〇」と一言出してから説明に入る。②「これ、面白くない？」という問いかけで相手の興味を引いてから話す。③相手が黙ったら「どう思う？」と聞いて対話に戻す。",
+    growth:"新規性があり、考える余地の大きいテーマや環境で最大限に伸びます。知識と発想を組み合わせる力が高く、前例のない問題へのアプローチが得意です。学んだことをアウトプット（発表・文章・提案）する習慣が、思考をさらに深め、成長を加速させます。",
+    barrier:"考えることに集中しすぎて、実行が後回しになりやすいです。「もっと調べてから」「完璧になったら動く」という傾向が、成果の遅れにつながることも。「60点でも動いてみて、修正する」という行動サイクルを意識すると、力が解放されます。",
+    relation:"議論や企画の場で力を発揮し、独自の視点を出します。知的な対話を楽しめる相手とは深くつながりますが、感情的な話や表面的な雑談は得意でないことも多いです。「雑談は情報収集だ」と捉えると、日常の会話が活きた素材になります。",
+    work:"企画・改善・研究・設計に強く、複雑な問題の構造を解明することが得意です。単調な繰り返し作業や、意図が不明な指示には強いストレスを感じます。「この仕事はどんな問いへの答えか」というフレームで捉えると、モチベーションが安定します。",
+    stress:"単調・非論理・制約・低刺激の環境でストレスが溜まります。ストレスサインは「引きこもる」「皮肉が増える」「エネルギーが急に落ちる」として表れます。対処法：①今、取り組んでいることの「知的な意味」を言語化する。②信頼できる人と「ただ話す」時間を週に一度持つ。",
+    message:"あなたの「なぜ？」という問いは、多くの人が見過ごしていたことに光を当てています。考えることはあなたの才能ですが、その才能は動くことで初めて世界に届きます。完璧でなくていい。まず一歩、小さく動いてみてください。そこから見える景色が、次の思考を生みます。",
+    interpersonal:"上司には：提案するとき「試しに小さくやってみたい」という切り口が通りやすい。まず動いて実績を作ると、大きな提案も通りやすくなる。同僚には：「こう思うんだけど、どう思う？」という問いかけで、自分の発想を対話の種にする。部下・後輩には：答えを教えるより「これ、どう思う？どうすればうまくいくと思う？」と問いを立てさせる関わりが、思考力を育てる。",
+    actions:["今日、「考えてから動く」を一つ「動きながら考える」に変えてみる","アイデアを誰か一人に話して反応をもらう（頭の中だけに置かない）","今週学んだことを3行でまとめて書き出す"],
+    stroke:"視点の鋭さ・発想の独自性・知的な貢献を、具体的な場面と共に認めると響きます。"
+  },
+  "FC-A": {
+    name:"アイデアマンタイプ", summary:"発想力と整理力で新しい価値を生む",
+    commType:"自由な発想をある程度整理して伝えられる、バランスの取れた創造型コミュニケーターです。「こんなのどう？」というアイデアを自然に出せる一方、感情の勢いが先に出ると話が飛びやすくなることも。「アイデア→なぜいいか→どうやるか」の順で話す習慣が、相手の納得を生みます。",
+    commAdvice:"①アイデアを出した後に「なぜそれがいいか」を一言添える。②話が広がりすぎたと感じたら「話を戻すと…」と自分で軌道修正する。③「無理」「難しい」という言葉を聞いたとき、すぐ反応せずに「具体的にどの部分が？」と聞き返す。",
+    growth:"裁量があり、試行錯誤できる環境で最大の力を発揮します。アイデアを形にするプロセス自体が学びになるため、小さくても「作り切った経験」を積み重ねることが重要です。完成品より「動くもの」「試せるもの」を早めに出すサイクルが成長を加速します。",
+    barrier:"熱しやすく、関心が移りやすいため、一つのことを最後まで詰めきれないことがあります。「面白そう→始める→飽きる→放置」というパターンに陥ると、周囲からの信頼が落ちることも。「やり切ったら次」というルールを自分に課すと、完走力がつきます。",
+    relation:"柔軟で面白い関わり方をしつつ、企画力もある独自のポジションを作れます。ただし、気分や優先度が変わりやすいと、約束が曖昧になることも。「言ったことは必ず守る」という小さな積み重ねが、長期的な信頼になります。",
+    work:"新しい企画・改善提案・問題解決のアイデア出しに強いです。管理業務・単調作業・自由度のない環境では力を出しにくいです。「この仕事、どう面白くできるか」という問いを持つ習慣が、どんな仕事でもモチベーションを維持させます。",
+    stress:"過度な管理・自由の制限・アイデアを否定される経験でストレスが高まります。ストレスサインは「急に無口になる」「投げやりな言動が出る」として表れます。対処法：①好きなことをする「回復時間」を週に一度確保する。②アイデアを否定されたとき「どの部分が難しいか」だけを聞き、改良につなげる。",
+    message:"あなたのアイデアと柔軟さは、周囲に「こんな方法もある」という可能性を見せ続けています。少しの仕上げで大きく化ける力があなたにはあります。「完璧より完走」を合言葉に、今日一つ、やり切る体験を積んでみてください。その積み重ねが、あなたの可能性をさらに広げます。",
+    interpersonal:"上司には：アイデアは「試してみてもいいですか？」という許可取りから始めると、受け入れられやすい。同僚には：アイデアを出したら「一緒にやってみない？」と巻き込む一言で、推進力が生まれる。部下・後輩には：「こうやってみて」より「どうやればうまくいくと思う？」と聞いて、相手の発想を引き出す。",
+    actions:["今日、やりかけのことを一つだけ「完了」にする","アイデアを思いついたらメモし、翌朝見直してから話す習慣をつける","週に一度「今週やり切ったこと」を一つ記録する"],
+    stroke:"発想の柔軟さ・着眼点のユニークさ・チャレンジする姿勢を、具体的な場面とともに認めると響きます。"
+  },
+  "FC-NP": {
+    name:"エンターテイナータイプ", summary:"明るさと温かさで人を元気にする",
+    commType:"感情表現が豊かで、相手を楽しませながら距離を縮める天性のコミュニケーターです。笑顔や共感で場を温める力は抜群ですが、「楽しく話せた＝伝わった」ではないことも。大事なメッセージは「楽しい空気の中で、ここだけ真剣に」という緩急をつけると、より深く届きます。",
+    commAdvice:"①楽しい会話の後に「今日一番伝えたかったのは〇〇」と一言まとめる。②ネガティブな状況でも「まず笑えるとしたら何？」という問いで場を解きほぐす。③相手が暗い顔をしているとき、盛り上げようとせず「どうした？」と一言声をかける。",
+    growth:"反応が得られ、人と関われる環境で最大限に伸びます。周囲を元気にしながら自分も元気になる好循環が生まれると、成長が加速します。「人を楽しませた経験」を積み重ねることで自己効力感が高まり、それが次のエネルギーを生みます。",
+    barrier:"勢いで進み、詰めが甘くなりやすいです。「楽しければいい」という感覚が強いと、アフターフォローや地道な作業が抜けてしまうことも。「始める前に完了のイメージを持つ」習慣が、完走力を高めます。",
+    relation:"親しみやすく、自然に周囲を元気づける関係を作ります。深い悩みを持った相手に対しては、「ただそばにいる」「一緒に笑う」という関わり方が、言葉以上に力になることを知っておくと、さらに深い関係が生まれます。",
+    work:"盛り上げ役・発信役・巻き込み役として力を発揮します。暗い雰囲気や閉塞感の強い職場では、エネルギーが急速に下がります。「自分がいるとチームが明るくなる」という役割意識を持つと、仕事への誇りにつながります。",
+    stress:"否定・抑圧・感情を無視された経験でストレスが高まります。ストレスサインは「急にテンションが落ちる」「投げやりになる」として表れます。周囲が変化に気づきやすいので、早めのサポートが有効です。対処法：①気分が落ちたとき「今日は回復の日」と決めて意図的に休む。②信頼できる人に「本音」を話す時間を作る。",
+    message:"あなたの笑顔と熱量は、誰かの「今日もやってみよう」という気持ちに直結しています。それは誰にでもできることではありません。落ちる日があっても、それはあなたの豊かさの裏側です。元気なときも、そうでないときも、あなたはすでに誰かにとって大切な存在です。",
+    interpersonal:"上司には：「盛り上げた場面でこんな成果が生まれた」という報告が評価につながる。数字と感情の両方で報告する。同僚には：笑いの中に一度「本当はどう思ってる？」と聞いてみると、より深い関係が生まれる。部下・後輩には：ほめるだけでなく「どうすればもっとうまくいくと思う？」と自己分析の機会を作る。",
+    actions:["今日、誰かを具体的に「〇〇のときの◯◯が面白かった・良かった」とほめる","今週、やりかけのことを一つ「完了」にしてから次に進む","落ち込んだときに使う「元気回復リスト」を今日書き出す"],
+    stroke:"存在感・明るさ・周囲への好影響を、具体的な言葉と場面で伝えると最も届きます。"
+  },
+  "FC-AC": {
+    name:"自由人タイプ", summary:"感性と共感が共存するユニークな存在",
+    commType:"自由に見えて、実は周囲の空気を繊細に読んでいる複雑なコミュニケーターです。感性豊かで独自の視点を持ちつつ、相手に合わせる力もある一方、「本音はどこ？」と読みにくいと感じさせることも。「今、正直に言うと…」という一言が、信頼をぐっと深めます。",
+    commAdvice:"①本音を伝えるとき「正直に言っていい？」と確認してから話す。②感情の波があるとき、それを「今、ちょっとザワザワしている」と言葉にする。③自分の軸（「これだけは大切にしたい」）を一つ決めて、迷ったときの基準にする。",
+    growth:"安心・安全が確保された上で自由があると、最大限に伸びます。自分の感性と個性を認めてくれる環境・人物との出会いが成長の起爆剤になります。「自分らしさ」を発揮できた経験を積み重ねることで、自己肯定感が高まり、安定した成長サイクルが生まれます。",
+    barrier:"気分の波や対人ストレスに揺れやすく、モチベーションの浮き沈みが激しくなりやすいです。「自分の感情＝すべての現実」と捉えてしまうと、客観的な判断が難しくなることも。「今の感情は一時的なもの」と俯瞰できると、行動の安定性が増します。",
+    relation:"親しみやすい一方、距離感が近くなったり遠くなったりしやすいです。「波」があること自体は問題ではありませんが、それを相手に事前に伝えておくと、関係が壊れにくくなります。深い関係では本音を話せるかどうかが信頼のカギです。",
+    work:"アイデア・表現・関係づくりに持ち味が出ます。管理・評価・制約が強い環境ではエネルギーが落ちやすいです。「今日の自分のテーマ」を毎朝一つ決めてから仕事に入ると、集中と方向性が安定します。",
+    stress:"批判・否定・管理されすぎる・感性を無視された経験でストレスが高まります。ストレスサインは「急に連絡が減る」「投げやりな言動」として表れます。対処法：①気持ちが落ちたとき、好きな音楽や空間に逃げ込む時間を意図的に設ける。②「今日感じたこと」を短くメモする習慣を持つ。",
+    message:"あなたの感性と個性は、周囲が見えていない色や可能性を見ています。揺れながらでも進もうとしているあなたは、十分に頑張っています。自分の「好き」と「嫌い」を大切にしながら、少しずつ「伝える」を練習してみてください。あなたが見ている世界を知りたいと思っている人が、きっとそばにいます。",
+    interpersonal:"上司には：「今、こんな気持ちで取り組んでいます」と内面を少し開示すると、距離が縮まる。同僚には：「最近どう？」と聞かれたとき、少しだけ本音を話してみる。部下・後輩には：相手の感情の変化に気づきやすいこの特性を活かして、「なんか最近元気なさそう、大丈夫？」と先から声をかける。",
+    actions:["今日、「正直に言っていい？」という言葉を一度使ってみる","自分の「これだけは大切」を一つ紙に書き出す","気分が落ちたとき用の「回復場所・行動」を今日決める"],
+    stroke:"個性・感性・独自の視点・努力の両方を、場面を添えて丁寧に認めると心に届きます。"
+  },
+  "AC-CP": {
+    name:"努力家タイプ", summary:"誠実さと責任感でやり抜く",
+    commType:"丁寧で礼節があり、与えられた役割に誠実に向き合うタイプです。言葉を選びながら相手を尊重したコミュニケーションが得意ですが、我慢が積み重なると急に言い方が硬くなったり、黙り込んだりすることも。「思ったことは小さくても早めに伝える」習慣が、関係の長続きにつながります。",
+    commAdvice:"①不満を感じたとき、その日のうちに「実は気になっていたことがあって…」と切り出す。②相手を批判したくなったとき、「私はこう感じた」という主語で伝える。③感謝や承認を受けたとき、素直に「ありがとうございます」と受け取る練習をする。",
+    growth:"期待役割が明確で、評価基準がはっきりしている環境で伸びます。誠実に積み上げた信頼が、大きなチャンスや役割につながります。「コツコツ続ける力」は最大の武器であり、短期的に結果が見えなくても諦めない姿勢が長期的な成果を生みます。",
+    barrier:"自分にも他人にも厳しくなりやすく、疲れを蓄積させやすいです。「もっとできるはず」という思いが自己否定につながることも。また、ACが高いため、不満を言えずに我慢が爆発するリスクもあります。「完璧でなくていい」を意識的に自分に言い聞かせることが大切です。",
+    relation:"礼儀や秩序を大切にし、信頼を積み重ねる関係を好みます。表面上は穏やかに見えても、内側では評価や不満を蓄積していることも。定期的に自分の本音を吐き出せる場・人を確保することが、健全な関係を長続きさせます。",
+    work:"継続・定着・品質維持に強く、任された仕事を最後まで丁寧に仕上げます。曖昧な指示・感謝されない状況・理不尽な要求には強いストレスを感じます。「この仕事を誰のためにやっているか」を定期的に確認することが、モチベーションの安定につながります。",
+    stress:"理不尽・曖昧な指示・過剰な責任・感謝の欠如でストレスが高まります。ストレスサインは「無口になる」「表情が固くなる」「突然のミス増加」として表れます。対処法：①週に一度「今週の自分がよかった点」を3つ書き出す。②信頼できる人に「実は大変で…」と話す。",
+    message:"あなたの誠実さと継続力は、本物の信頼を生み出す力です。完璧を目指すあなたに伝えたいのは、「十分に頑張っている」ということです。たまには立ち止まって、自分の努力を認めてください。厳しさを自分に向けるのと同じくらい、優しさも自分に向けていい。あなたがまず自分を大切にすることで、周囲も大切にできます。",
+    interpersonal:"上司には：定期的に「現在の状況と気になっていること」を短くまとめて共有する。ため込む前に話すことで信頼が深まる。同僚には：相手の小さな変化に気づいて「最近忙しそうだね」と声をかけるだけで、深い関係が生まれる。部下・後輩には：「よくやってくれている」という言葉を具体的な場面とともに伝える。自分が言われたい言葉を相手に届ける。",
+    actions:["今日、自分の「よかった点」を一つ声に出すか紙に書く","不満を感じたとき、当日中に誰かに「実はこんなことがあって…」と話す","「完璧でなくていい」を今日3回、心の中で言う"],
+    stroke:"努力・誠実さ・継続力を、具体的なエピソードとともにしっかり言葉にして伝えると最も響きます。"
+  },
+  "AC-NP": {
+    name:"サポート役タイプ", summary:"周囲を支える縁の下の力持ち",
+    commType:"相手を立て、求められる役割を丁寧に果たすコミュニケーターです。気配りと温かさが自然に出るため、「話しやすい」「安心できる」と感じてもらいやすいです。ただし、自己主張が弱いため、意見を求められても「どちらでも」となりやすく、存在感が薄まることも。「私はこう思う」という一言が、あなたへの信頼を深めます。",
+    commAdvice:"①意見を聞かれたとき「どちらでも」ではなく「私はこちらかな、と思います」という形で答える。②誰かをサポートしたとき、そのことを自分から軽く伝える（「先ほど〇〇しておきました」）。③断るときは「今は難しいですが、〇〇ならできます」という代替案をセットで伝える。",
+    growth:"安心感があり、協力的なチームの中で最大限に伸びます。サポートした相手が成長した瞬間に大きな喜びを感じるため、その「感謝と成長のサイクル」が成長の燃料になります。自分の貢献を可視化する（記録する）習慣を持つと、自己効力感が高まります。",
+    barrier:"自己主張の弱さが「なんでも引き受ける」につながりやすく、抱え込みすぎるリスクがあります。また、感謝されない・評価されない状況が続くと、一気にモチベーションが落ちることも。「自分の限界を言葉にする」練習が最大の自己防衛になります。",
+    relation:"相手を立て、支援する形で関係を作ります。深く信頼した相手には誠実に応えますが、その分裏切られたときのダメージが大きいです。「支えるだけでなく、支えられる関係」を意識的に作ることが、長続きする人間関係の基盤になります。",
+    work:"支援・調整・フォロー業務で本来の力を発揮します。自分が前に出る仕事・競争・評価が不透明な環境には消耗しやすいです。「この仕事で誰が助かっているか」を定期的に意識すると、モチベーションが安定します。",
+    stress:"強い圧・衝突・否定的な空気・感謝のなさでストレスが高まります。ストレスサインは「急に元気がなくなる」「返事が遅くなる」として表れます。外からわかりにくいため、定期的な1on1や声かけが有効です。対処法：①「今週しんどかったこと」を週末に書き出す。②「助けてほしい」と言える相手を一人作る。",
+    message:"あなたの気配りと誠実さは、チームの目に見えない土台を作っています。感謝されない日も、見てもらえない日も、あなたの行動は確実に誰かに届いています。自己主張することはわがままではありません。「私はこう思う」という声は、あなたがより深く関わるための大切な第一歩です。",
+    interpersonal:"上司には：サポートしたことを「〇〇の件、対応しておきました」と一言報告する習慣を持つ。見えにくい貢献を可視化することが評価につながる。同僚には：「助けてほしいとき、言っていいよ」という空気を自分からも作る。同僚の頼みを受けるだけでなく、自分からも頼む練習をする。部下・後輩には：「困ったことがあればいつでも言って」だけでなく、「今どんなことが大変？」と先から聞く。",
+    actions:["今日、自分の意見を一度「私はこう思います」という形で伝える","今週のサポートを一つ記録し「これが役に立った」と自分を認める","「助けてほしい」と伝えてみる相手を一人決める"],
+    stroke:"支援の価値・見えにくい貢献・誠実な努力を、具体的な場面と共にしっかり言葉にして伝えると届きます。"
+  },
+  "AC-A": {
+    name:"慎重タイプ", summary:"よく考えて、着実に動く",
+    commType:"情報を整理してから動くため、発言の質が高く信頼されやすいコミュニケーターです。慎重さと誠実さが伝わる一方、「考えすぎて発言が遅い」「消極的に見える」と誤解されることも。「考えている途中でも発信する」練習が、存在感を高めます。",
+    commAdvice:"①会議などでは「今考えているのですが…」という途中経過を伝えるだけで、存在感が変わる。②意見を求められたとき、完全に整理できていなくても「まず思ったのは〇〇です」と発言する。③不安や心配を感じたとき、それを「リスクとして確認したいのですが」という建設的な形で出す。",
+    growth:"情報が整い、落ち着いて考えられる環境で本領を発揮します。慎重に積み上げた判断は信頼性が高く、失敗リスクを下げる力があります。「考えた上での行動」を積み重ねることで、自信がついていきます。小さなチャレンジをひとつ完了するたびに、行動力が育ちます。",
+    barrier:"慎重さが強すぎると、チャンスを逃したり、挑戦を回避したりするパターンに陥りやすいです。「完璧な準備ができてから動く」では、いつまでも動けないことも。「60点の準備で動いて、修正する」という行動習慣が、成長の幅を広げます。",
+    relation:"安定した関係を好み、空気を乱さない穏やかな関わり方を自然にします。深い関係では信頼が厚い一方、新しい関係を広げることが苦手なことも。「自分から一歩踏み出す」機会を意識的に作ると、人間関係の幅が広がります。",
+    work:"リスク管理・事前確認・品質担保に強みを発揮します。急な変化・強いプレッシャー・情報が不完全な状況でのジャッジには消耗します。「今日できること」「今週できること」に分けて行動計画を作ると、焦らず着実に進めます。",
+    stress:"急な変化・強いプレッシャー・情報不足・理不尽な状況でストレスが高まります。ストレスサインは「さらに慎重になる」「動けなくなる」「無口になる」として表れます。対処法：①「最悪の場合どうなるか？でも、対処できるか？」という問いで不安を具体化する。②一日一つ、小さなことでも「自分で決めて動く」を繰り返す。",
+    message:"あなたの慎重さと誠実さは、周囲に安心と信頼を届けています。「考えてから動く」ことは、決して弱さではありません。ただ、考え続けることで動けなくなっているとしたら、そこで少しだけ背中を押してみてください。小さな一歩が、あなたの行動の幅を確実に広げていきます。",
+    interpersonal:"上司には：「検討中ですが、現時点では〇〇を考えています」という途中経過の共有が、信頼を生む。同僚には：「一緒に考えてもいい？」という言葉で、思考を対話の場に持ち出す。部下・後輩には：答えを急がせず「どう思う？時間をかけて考えていいよ」という環境を作ると、力を引き出せる。",
+    actions:["今日、「考えている途中」でも一度発言する","今週、小さなことを一つ「決めて動く」を実践する","不安を感じたとき「最悪の場合は？でも対処できる？」と自問する"],
+    stroke:"慎重さ・安定感・丁寧な仕事ぶりを、具体的な場面と共に言葉にして伝えると響きます。"
+  },
+
+  "FC-CP": {
+    name:"改革推進タイプ", summary:"自由な情熱と正義感で変化を起こす",
+    commType:"感情表現が豊かで、自分の信念を熱量高く伝えるコミュニケーターです。「楽しい・やりたい」という自発性と「こうあるべき」という価値観が合わさることで、周囲を引き込む推進力を持ちます。ただし、感情と主張が同時に出ると、相手が「圧倒された」と感じることも。まず相手の話を受け止めてから自分の意見を伝える順番を意識すると、共感を生む対話になります。",
+    commAdvice:"①自分の意見を伝える前に「あなたはどう思う？」と一言聞く習慣をつける。②「〜すべき」と感じたとき、「〜するとこんないいことがある」という表現に変える。③熱量が高い場面ほど、ひと呼吸置いてから話し始める。",
+    growth:"自由な発想と強い信念が合わさるとき、大きなエネルギーが生まれます。「やりたい」という動力と「正しくありたい」という軸が両方あるため、単なる思いつきで終わらず、やり遂げる力につながります。自分が楽しいと感じる仕事に責任ある役割が与えられる環境で最大限に伸びます。",
+    barrier:"感情と主張が一度に出やすいため、周囲から「強引」「自分本位」と映ることがあります。また、「楽しくない」と感じた途端にエネルギーが落ちやすく、責任感と感情のバランスが崩れると燃え尽きるリスクも。FCの衝動性とCPの厳しさが同時に出ると、周囲が萎縮することもあります。",
+    relation:"引っ張り型のリーダーシップを自然に発揮し、ビジョンに共感した人と深くつながります。一方で、自分のペースに合わない相手や慎重な人とは摩擦が起きやすいです。「違うペース＝敵」ではなく「違う強み」と捉える視点が、関係の幅を広げます。",
+    work:"新しいことを立ち上げる・改革する・人を巻き込む場面で本領を発揮します。ルーティンや制約が多い環境ではエネルギーが下がりやすく、「なぜこれをやるのか」という意味が見えなくなると急速にモチベーションを失います。「自分が楽しめる意味づけ」を仕事に与える習慣が安定につながります。",
+    stress:"自分の理想や情熱が否定される、制約が多くて動けない、努力が評価されない場面でストレスが高まります。ストレスサインは「言動が激しくなる」「急に引きこもる」の両極として表れやすいです。対処法：①「今変えられること」と「今は変えられないこと」を書き分ける。②信頼できる人に話を聴いてもらう時間を作る。",
+    message:"あなたの情熱と信念は、周囲が見えていない可能性を照らす力を持っています。熱くなれること自体が才能です。ときに「なぜ伝わらないのか」と焦ることがあるかもしれません。でも、伝わるスピードは人それぞれです。あなたの熱量を少し「待つ」ことに使ってみてください。仲間が増えたとき、あなたのエネルギーは何倍にもなります。",
+    interpersonal:"上司には：ビジョンと「まず小さく試す」第一歩をセットで提案する。いきなり全体像より「試してもいいですか？」という入り方が通りやすい。同僚には：自分の意見を述べた後に「どう思う？」と一言加えるだけで、対話が生まれる。部下・後輩には：「こうやって」より「一緒にやってみない？」という誘いのスタイルで巻き込む。",
+    actions:["今日の会話で、自分の意見を言う前に相手の意見を最後まで聞く場面を一つ作る","「〜すべき」という言葉を使いそうになったとき「〜するといいかも」に言い換える","今週、自分が楽しいと感じた瞬間を一つ記録する"],
+    stroke:"情熱・信念・行動力を、具体的な場面と一緒に伝えると最も響きます。"
+  },
+  "NP-CP": {
+    name:"母性リーダータイプ", summary:"温かさと厳しさで人を育て導く",
+    commType:"相手を受け入れながらも、きちんと基準を示せるバランスの取れたコミュニケーターです。「あなたのことが大切だから、正直に言う」という姿勢が自然に出るため、信頼関係を築いた相手には大きな影響力を持ちます。ただし、温かさと厳しさが同時に出ると、相手が「どちらが本音か」と戸惑うことも。状況に応じて「今は受け止める場面」「今は基準を示す場面」を使い分けると伝わりやすくなります。",
+    commAdvice:"①フィードバックする前に「少し話していい？」と確認する一言を入れる。②温かく受け止めた後に「一つだけ伝えていい？」という形で改善点を伝える。③自分が感じていることを「私はこう思う」という主語で表現する習慣をつける。",
+    growth:"思いやりと責任感が共存しているため、「育てる・支える・正す」すべての役割を担えます。人の成長に喜びを感じるタイプで、後輩や部下から信頼を集めやすいです。感謝が循環する環境に置かれると、大きなモチベーションと成長につながります。",
+    barrier:"相手の期待に応えようとしすぎて、自分を後回しにする傾向があります。また、「温かく接したのに伝わらない」「厳しくしたら嫌われた」という経験が積み重なると、接し方の迷いにつながることも。「全員に理解してもらう必要はない」という割り切りが自分を守ります。",
+    relation:"面倒見がよく、相手の状況に合わせて接し方を変えられるため、広い年齢層から慕われます。深く関わる分、裏切られたと感じたときのダメージが大きいため、適切な距離感を意識することが長続きする人間関係のカギです。",
+    work:"育成・指導・チームのまとめ役として力を発揮します。人と成果の両立を自然に考えられるため、マネジメント職で特に強みが発揮されます。感情的な対立や感謝のない環境では消耗しやすいため、自分のケアも意識的に行うことが重要です。",
+    stress:"相手に誠実に向き合ったのに伝わらない、感謝されない、板挟みになる状況でストレスが蓄積します。外からは穏やかに見えるため、周囲が気づかず消耗が進みやすいです。ストレスサインは「笑顔が減る」「口数が減る」として表れます。対処法：①週に一度「自分が頑張ったこと」を書き出す。②自分自身をねぎらう時間を意図的に作る。",
+    message:"あなたの温かさと誠実さは、多くの人の「安心できる場所」になっています。厳しい言葉も、その奥には相手への深い信頼があります。ただ、あなた自身も誰かに甘えていい。「頑張れる人」であることと「助けを求めていい人」であることは、矛盾しません。今日、誰かに「実は大変で」と話してみてください。",
+    interpersonal:"上司には：「現場の温度感」を感情ではなく事実として伝える。「〇〇さんが最近こういう状態で」という具体的な報告が信頼を生む。同僚には：アドバイスは求められたときだけ。「どうしたい？」と先に聞いてから関わる。部下・後輩には：指導後に「自分はどう思う？」と問いかけ、相手自身の考えを引き出す。",
+    actions:["今日、誰かの「良い点」を具体的な場面と一緒に伝える","フィードバックする前に「今話していい？」の一言を入れる習慣をつける","週末に「今週の自分をねぎらう言葉」を一つ書く"],
+    stroke:"育成への貢献・誠実さ・相手への深い関心を、具体的なエピソードとともに言葉にすると響きます。"
+  },
+  "CP-AC": {
+    name:"忍耐完遂タイプ", summary:"責任感と粘り強さで最後までやり遂げる",
+    commType:"自分に課した基準を守り、誠実に役割を果たすコミュニケーターです。約束を守り、きちんと伝える誠実さは周囲から信頼されます。ただし、自分の基準を相手にも求めすぎると、厳しく映ることも。また、我慢が蓄積すると急に言い方がきつくなることがあるため、不満は小さいうちに言葉にする習慣が大切です。",
+    commAdvice:"①相手を注意したくなったとき「私はこう感じた」という主語で伝える。②不満を感じたその日のうちに、信頼できる人に話す習慣をつける。③「〜すべき」を「〜するとうまくいく」に言い換える練習を日常に取り入れる。",
+    growth:"強い責任感と粘り強さで、困難な状況でも諦めずにやり遂げる力があります。「任されたことは最後まで」という姿勢が信頼の積み上げになり、長期的に大きな役割を任されるようになります。評価基準が明確な環境で特に力を発揮します。",
+    barrier:"自分にも他人にも厳しいため、疲れを溜めやすいです。我慢が続くと「なぜ自分だけ」という感覚が膨らみ、一気に爆発するリスクがあります。また、ACが高いため、不満を溜め込みながら表面上は従順に見え、周囲が限界に気づかないことも。定期的な「吐き出し」の場を持つことが自己防衛になります。",
+    relation:"礼節を大切にし、責任感を持って関わるため、上司や先輩からは評価されやすいです。一方で、自分と同じ基準を期待した相手が期待を外すと、内心での評価が大きく下がることも。「人はそれぞれ違う基準を持っている」という視点が、人間関係のストレスを減らします。",
+    work:"継続・品質・責任を重んじる仕事で本領を発揮します。曖昧な指示・理不尽な要求・感謝のない環境では強いストレスを感じます。「この仕事は誰のためか」を定期的に確認することが、モチベーションを長く保つカギです。",
+    stress:"理不尽・不公平・過剰な責任・感謝の欠如でストレスが高まります。ストレスサインは「無口になる」「表情が固くなる」「ミスが増える」として表れます。対処法：①週に一度「今週の自分が頑張ったこと」を3つ書き出す。②小さな不満をその日のうちに言葉にして吐き出す。",
+    message:"あなたの責任感と誠実さは、周囲の安心と信頼の土台になっています。「きちんとやらなければ」という気持ちは、あなたの誠実さの表れです。ただ、完璧を自分に求めすぎていませんか。たまには「これでいい」と手放す練習も、あなたの大切なスキルになります。今日、一つだけ「完璧でなくてOK」と自分に言ってみてください。",
+    interpersonal:"上司には：定期的に「現在の状況と気になっていること」を短く共有する。ため込む前に話すことで信頼が深まる。同僚には：相手の小さな変化に気づいて「最近どう？」と声をかけるだけで、深い関係が生まれる。部下・後輩には：「よくやってくれている」という言葉を具体的な場面とともに伝える。自分が言われたい言葉を相手に届ける。",
+    actions:["不満を感じたとき、その日のうちに誰かに「実はこんなことがあって」と話す","「完璧でなくていい」を今日3回、心の中で言う","誰か一人に、具体的な感謝の言葉を伝える"],
+    stroke:"責任感・誠実さ・やり遂げる力を、具体的なエピソードとともにしっかり言葉にして伝えると響きます。"
+  },
+  "AC-FC": {
+    name:"共感表現タイプ", summary:"協調しながら自分らしさを発揮する",
+    commType:"周囲への配慮と自己表現を両立しようとするコミュニケーターです。相手の空気を読みながら、自分の感情や発想を自然に出せる場面では明るく個性的な関わり方ができます。ただし、ACとFCのバランスが状況によって揺れやすく、「空気を読みすぎて本音を隠す」と「感情が一気に出る」の両極が交互に出やすいです。「今は本音を出していい場面か」を意識すると安定します。",
+    commAdvice:"①信頼できる相手に「実は〜と思っている」と本音を少しずつ開示する練習をする。②感情が上がったとき「今、少し感情的になっているかも」と一言添えると場が和らぐ。③自分が「楽しい」と感じる時間を週に一度、意図的に確保する。",
+    growth:"相手の気持ちを読む力と、自分の感性・発想力の両方を持っています。安心できる関係の中では豊かな感情表現と創造性が発揮され、その場を明るく個性的にする力があります。自分らしさを認めてくれる環境・人との出会いが、成長の大きな起爆剤になります。",
+    barrier:"ACとFCの間で揺れやすいため、「本当の自分はどちらか」という迷いが生じることがあります。周囲に合わせすぎて疲れると、FCが一気に出て感情的になるという波が起きやすいです。「今日の自分の感情」を定期的に言葉にする習慣が、この波を穏やかにします。",
+    relation:"親しみやすく、相手に合わせる柔軟さがある一方、本音をなかなか見せないため「本当は何を考えているのか」と思われることも。深い関係を作るには「この人には本音を言える」という信頼の相手を意識的に一人作ることが大切です。",
+    work:"アイデア・表現・人との関係づくりに持ち味が出ます。チームの雰囲気を読みながら自分の発想を活かせる環境で力を発揮します。強い管理・批判・評価が不透明な環境ではエネルギーが落ちやすいです。",
+    stress:"批判・強い管理・感情を抑圧される状況でストレスが高まります。ストレスサインは「急に連絡が減る」「テンションが極端に落ちる」「感情が一気に出る」として表れます。対処法：①気持ちが落ちたとき「今日は回復の日」と決めて休む。②「今日感じたこと」を短くメモする習慣を持つ。",
+    message:"あなたの感性と周囲への気配りは、どちらも本物の才能です。「空気を読む自分」と「自由に感じる自分」の両方があなたです。どちらかを消す必要はありません。ただ、自分の本音を隠しすぎていませんか。「実はこう感じている」という声を、信頼できる人に届けてみてください。それがあなたの関係をより深くします。",
+    interpersonal:"上司には：「今、正直に言っていいですか？」という一言を使って本音を少し開示する練習をする。同僚には：冗談の中に一度「本当はどう思ってる？」と聞いてみると、より深い関係が生まれる。部下・後輩には：相手の感情の変化に気づきやすいこの特性を活かして「なんか最近元気なさそう、大丈夫？」と先から声をかける。",
+    actions:["今日、信頼できる人に「実は〜と感じている」と本音を一つ話す","自分が「楽しい」と感じた瞬間を今週一つ記録する","感情が上がったとき「少し落ち着いてから話す」を一度実践する"],
+    stroke:"感性・周囲への気配り・個性を、具体的な場面と共に丁寧に伝えると心に届きます。"
+  },
+  "A-AC": {
+    name:"堅実分析タイプ", summary:"冷静な判断と慎重さで着実に成果を出す",
+    commType:"情報を整理してから慎重に伝えるコミュニケーターです。発言の質が高く、「この人が言うなら信頼できる」という安心感を周囲に与えます。ただし、考えてから話す分、発言のタイミングが遅く「何を考えているかわからない」と思われることも。「考えている途中でも発信する」習慣が、存在感を高めます。",
+    commAdvice:"①会議などで「今考えているのですが…」という途中経過を伝えるだけで存在感が変わる。②意見を求められたとき、完全に整理できていなくても「まず思ったのは〇〇です」と発言する。③不安や心配は「リスクとして確認したいのですが」という形で建設的に出す。",
+    growth:"論理的に整理する力と、慎重に状況を見極める力の両方を持っています。リスクを事前に察知して対処する能力は、組織の「安定装置」として機能します。情報が整い、じっくり考えられる環境で最大限の力を発揮します。一つ完了するたびに自信がつき、行動の幅が広がります。",
+    barrier:"慎重さが強すぎると、チャンスを逃したり挑戦を回避するパターンに陥りやすいです。「完璧な準備ができてから動く」という思考が、いつまでも動けない状況を作ることも。ACが高いため、周囲への遠慮が重なって「自分の意見を言いにくい」という状況にもなりやすいです。",
+    relation:"安定した関係を好み、空気を乱さない穏やかな関わり方を自然にします。信頼した相手には誠実に向き合いますが、新しい関係を広げることが苦手なことも。「自分から一歩踏み出す」機会を意識的に作ると、人間関係の幅が広がります。",
+    work:"リスク管理・事前確認・データ分析・品質担保に強みを発揮します。急な変化・強いプレッシャー・情報不足の状況でのジャッジには消耗します。「今日できること・今週できること」に分けて計画を立てると、焦らず着実に進められます。",
+    stress:"急な変化・強いプレッシャー・情報不足・理不尽な状況でストレスが高まります。ストレスサインは「さらに慎重になる」「動けなくなる」「無口になる」として表れます。対処法：①「最悪の場合どうなるか？でも対処できるか？」という問いで不安を具体化する。②一日一つ、小さなことでも「自分で決めて動く」を繰り返す。",
+    message:"あなたの慎重さと誠実さは、周囲に安心と信頼を届けています。「考えてから動く」ことは決して弱さではありません。ただ、考え続けることで動けなくなっているとしたら、そこで少しだけ背中を押してみてください。小さな一歩が、あなたの可能性を確実に広げていきます。完璧でなくていい。動いた自分を認めることから始めましょう。",
+    interpersonal:"上司には：「検討中ですが、現時点では〇〇を考えています」という途中経過の共有が信頼を生む。同僚には：「一緒に考えてもいい？」という言葉で、思考を対話の場に持ち出す。部下・後輩には：答えを急がせず「どう思う？時間をかけて考えていいよ」という環境を作ると、力を引き出せる。",
+    actions:["今日、「考えている途中」でも一度発言する","今週、小さなことを一つ「決めて動く」を実践する","不安を感じたとき「最悪の場合は？でも対処できる？」と自問する"],
+    stroke:"慎重さ・安定感・丁寧な仕事ぶりを、具体的な場面と共に言葉にして伝えると響きます。"
+  },};
+
+var SUPPLEMENT = {
+  "他者|CP>NP":  "CPがNPを上回っているため、相手の課題や短所に目が向きやすく、厳しさが前面に出やすい傾向があります。認める言葉を意識的に増やすと、関係のバランスが整います。",
+  "他者|NP>=CP": "NPがCP以上のため、相手の可能性や長所に目を向けやすく、受容的で温かい関わりを自然に作れます。この「あなたOK」の姿勢は、人間関係の大きな財産です。",
+  "自己|FC>AC":  "FCがACを上回っているため、自分の気持ちや存在を比較的認めやすく、「私はここにいていい」という感覚を持ちやすい傾向があります。",
+  "自己|AC>=FC": "ACがFC以上のため、周囲に合わせて自分を抑えやすく、「私はこれでいいのだろうか」と自己疑念が出やすい場面があります。自分の感情や要望を言葉にする練習が、自己肯定感を育てます。",
+  "A|low":  "Aが相対的に低めのため、全体像より目前の出来事に引っ張られやすい可能性があります。「一歩引いて見ると何が起きているか？」と問う習慣が、判断の質を高めます。",
+  "A|mid":  "Aは概ねバランス域にあり、状況を冷静に整理する力を使いやすい状態です。",
+  "A|high": "Aが相対的に高く、冷静さと合理性は強みです。感情面の言葉も意識的に添えると、周囲との距離がより縮まります。",
+  "energy|high": "5つの自我状態の合計が高く、エネルギーは豊富です。力を発揮しやすい反面、消耗も速いため、回復の時間も大切にしましょう。",
+  "energy|mid":  "5つの自我状態の合計は中程度で、安定したエネルギー量です。",
+  "energy|low":  "5つの自我状態の合計がやや低めです。疲労や自己抑制が影響している可能性があります。まず「消耗を減らす」視点を持つことが大切です。",
+  "CP|low":  "CPが低めのため、「自分の基準をはっきり持ち、NOと言う」練習が成長のポイントです。",
+  "CP|mid":  "CPは概ねバランス域で、責任感とルール意識をバランスよく使えている状態です。",
+  "CP|high": "CPが高めのため、「〜すべき」が強くなりすぎないよう意識すると、周囲との関係がより良くなります。",
+  "NP|low":  "NPが低めのため、余裕がないと冷たく見えてしまうことがあります。相手への一言のねぎらいが、関係の温度を変えます。",
+  "NP|mid":  "NPは概ねバランス域で、思いやりと適度な距離感を保てている状態です。",
+  "NP|high": "NPが高く、思いやりと安心感は大きな強みです。抱え込みやおせっかいにならないよう「自分の限界」を言葉にする練習も大切です。",
+  "FC|low":  "FCが低めのため、楽しむ・好奇心を持つ機会を意識的に作ることが、活力の回復につながります。",
+  "FC|mid":  "FCは概ねバランス域で、自然体の明るさと発想力を無理なく使えている状態です。",
+  "FC|high": "FCが高く、明るさと創造性は強みです。勢いや衝動が先行しすぎないよう、「少し立ち止まって考える」習慣が安定につながります。",
+  "AC|low":  "ACが低めのため、感情が表に出やすく、周囲に反抗的・独善的と映る場面があるかもしれません。「相手の立場から見るとどう感じるか」を意識すると関係が変わります。",
+  "AC|mid":  "ACは概ねバランス域で、周囲への配慮と自分らしさのバランスを取りやすい状態です。",
+  "AC|high": "ACが高く、我慢強さと協調性は強みです。本音を隠しすぎず、小さな不満を早めに言葉にする習慣が、自分と周囲の両方を守ります。",
+  "ACtype|モロ出し": "ACが低い「モロ出しタイプ」です。感情が表情や態度に出やすく、正直でわかりやすい反面、周囲が接しにくいと感じることもあります。変化が見えやすいため、周囲もフォローに入りやすいタイプです。",
+  "ACtype|腹黒":    "ACが中程度の「本音と建前タイプ」です。状況に応じて使い分けができる器用さがある一方、本音が見えにくいと思われることも。信頼する相手には少し本音を見せることで、関係がより深まります。",
+  "ACtype|隠す":    "ACが高い「隠すタイプ」です。我慢強く、断りにくく、表面上は大丈夫そうに見えがちです。不満や限界を抱え込みすぎる前に、早めに言葉にする習慣を持つことが、自分と周囲の両方を守ります。",
+  "workA|high": "論点整理・比較検討・再現性づくりを得意とし、仕事では「なぜ・何のために」を重視する傾向があります。",
+  "workA|mid":  "現実的な判断と対人配慮のバランスを取りながら仕事を進めやすい傾向があります。",
+  "workA|low":  "目の前の出来事に引っ張られやすいため、「今週のゴールは何か」を毎朝確認する習慣が、仕事の質を高めます。"
+};
+
+var HINT = {
+  "CP":"相手を認める言葉を日常に増やし、「〜すべき」を「〜するとうまくいく」に言い換える練習をする",
+  "NP":"自分の感情や要求を一日一回言葉にし、「NOと言う練習」を小さなことから始める",
+  "A": "「今どんな状況か」を一日一回書き出し、全体像を俯瞰する習慣をつくる",
+  "FC":"一日一つ、「やってみたいこと」「楽しいと感じること」を意識的に取り入れる",
+  "AC":"自分の本音を信頼できる人に話す機会を週一回作り、「私はこう思う」という発信を増やす"
+};
+
+// ============================================================
+//  UI
+// ============================================================
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+function syncScore(key, val) {
+  val = Math.min(20, Math.max(0, parseInt(val)||0));
+  document.getElementById(key+'-slider').value = val;
+  document.getElementById(key+'-num').value = val;
+  document.getElementById(key+'-slider').style.setProperty('--val',(val/20*100)+'%');
+}
+['cp','np','a','fc','ac'].forEach(function(k){ document.getElementById(k+'-slider').style.setProperty('--val','50%'); });
+
+function getScores(){
+  return {
+    cp:parseInt(document.getElementById('cp-num').value)||0,
+    np:parseInt(document.getElementById('np-num').value)||0,
+    a: parseInt(document.getElementById('a-num').value)||0,
+    fc:parseInt(document.getElementById('fc-num').value)||0,
+    ac:parseInt(document.getElementById('ac-num').value)||0
+  };
+}
+
+function calcLogic(s){
+  var entries=[['CP',s.cp],['NP',s.np],['A',s.a],['FC',s.fc],['AC',s.ac]];
+  entries.sort(function(a,b){return b[1]-a[1];});
+  var rank1=entries[0][0], rank2=entries[1][0];
+  var typeKey=rank1+'-'+rank2;
+  var total=s.cp+s.np+s.a+s.fc+s.ac;
+  var lowest=entries[entries.length-1][0];
+  var otherKey = s.cp>s.np ? 'CP>NP' : 'NP>=CP';
+  var selfKey  = s.fc>s.ac ? 'FC>AC' : 'AC>=FC';
+  var aKey     = s.a<=8 ? 'low' : s.a>=12 ? 'high' : 'mid';
+  var energyKey= total>=70?'high':total>=50?'mid':'low';
+  var cpKey    = s.cp<=8?'low':s.cp>=12?'high':'mid';
+  var npKey    = s.np<=12?'low':s.np>=15?'high':'mid';
+  var fcKey    = s.fc<=10?'low':s.fc>=15?'high':'mid';
+  var acKey    = s.ac<=8?'low':s.ac>=14?'high':'mid';
+  var acType   = s.ac<=8?'モロ出し':s.ac>=14?'隠す':'腹黒';
+  var workA    = aKey;
+  return {rank1:rank1,rank2:rank2,typeKey:typeKey,total:total,lowest:lowest,
+    otherKey:otherKey,selfKey:selfKey,aKey:aKey,energyKey:energyKey,
+    cpKey:cpKey,npKey:npKey,fcKey:fcKey,acKey:acKey,acType:acType,workA:workA};
+}
+
+var _secIdx = 0;
+
+// ===== 役職別分析マスター =====
+var ROLE_ANALYSIS = {
+  '管理職': {
+    label: '管理職',
+    color: '#1a3a7a',
+    bgColor: '#dce9f7',
+    themes: ['マネジメント', '育成', 'ハラスメント防止', 'モチベーション', '離職防止'],
+    intro: 'あなたは管理職として、チームや組織全体の成果と人材育成の両立が求められる立場にいます。エゴグラムのパターンは、リーダーとしてのスタイルと、メンバーへの影響を理解する重要な手がかりです。',
+    sections: {
+      management: {
+        title: 'マネジメントスタイルの傾向',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.cp >= 12 && s.a >= 12 && s.np >= 12) {
+            pat = {
+              text: '【三軸バランス型】基準を示す力・論理的な判断力・部下へのサポート力がすべて高く、マネジメントの土台が整っています。高い水準を保てている反面、全力で動きすぎると自分が消耗しやすいため「任せる」判断も重要です。',
+              tips: [
+                '「全部自分でやらなければ」という感覚が強くなったとき、意識的に誰かに任せる機会を作る。マネジメントの成熟は「任せる力」にある',
+                '3つの力を場面によって使い分ける。会議では「整理する力（A）」、1on1では「聴く力（NP）」、品質管理では「基準を示す力（CP）」と切り替える意識を持つ',
+                '月に一度「自分のキャパシティ」を10段階で確認する。7以下なら仕事の割り振りを見直す。管理職のコンディションはチーム全体に影響する'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np >= 12) {
+            pat = {
+              text: '【規範×サポート型】高い基準とフォローを使い分けられる育成力のあるスタイルです。部下から「厳しいけど信頼できる上司」と感じてもらいやすい状態です。',
+              tips: [
+                '指摘のあとに「期待している」「あなたならできる」という言葉を必ず添える。高い基準（CP）と温かいサポート（NP）が揃っているあなたの「指摘＋期待」のセットは、部下に叱責ではなく育成として届く',
+                '意思決定の場面では「なぜそうするか」の背景を言語化して共有する。理由を伝えることで部下の判断軸が育ち、指示の量が減っていく',
+                '1on1で「今の仕事のどこが難しいか」を聞く習慣を持つ。サポートと基準の両方が揃っているときこそ、部下が本音を話しやすい'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np <= 6) {
+            pat = {
+              text: '【指示型】高い基準と明確な指示が強みですが、サポートや承認が届きにくい状態です。部下が「指摘はされるが認められない」と感じると、モチベーション低下や離職につながるリスクがあります。',
+              tips: [
+                '指摘・叱責のあとに「あなたへの期待」を必ずセットにする。「ここが違う、だからこそあなたならできる」という形にする',
+                '週に一度、部下の「うまくいったこと」を一つ具体的に言葉にして伝える。承認は評価面談だけでなく日常の一言に宿る',
+                '定期的な1on1を設け「最近どう？」と聞く場を作る。部下が困っているサインを早期に察知することが離職防止の最も効果的な手段'
+              ]
+            };
+          } else if (s.cp >= 12 && s.a >= 12) {
+            pat = {
+              text: '【規範×論理型】基準を明確にし根拠を持って判断できる、信頼性の高いマネジメントスタイルです。一方、論理と規律を優先するあまり、部下の感情面が見えにくくなることがあります。',
+              tips: [
+                '判断の根拠を伝えるとき「論理的な理由」と「自分がそれをどう感じているか」の両方を言葉にする。感情を添えることで部下の納得感が高まる',
+                '1on1でスコアや進捗以外の「気持ちの話」を意識的に聞く時間を設ける。「最近どう感じてる？」の一言が関係の温度を保つ',
+                '意思決定後に「これで迷っている人はいないか」を一言確認する習慣を持つ。論理が正しくても、感情的な納得がなければ動かない'
+              ]
+            };
+          } else if (s.a >= 12 && s.np >= 12) {
+            pat = {
+              text: '【論理×サポート型】客観的な判断力と部下への配慮が組み合わさった、調整力の高いスタイルです。チームの意見をまとめ、感情的な衝突を防ぐ橋渡し役として機能しやすいです。',
+              tips: [
+                '複数の意見が出たとき「両方の主張をまとめると〇〇と〇〇ですね」と整理する役を積極的に引き受ける。あなたのAとNPが最も活きる場面',
+                '判断を下すとき「論理的な根拠」に加えて「チームへの影響」も言語化して伝える。部下が安心して動けるマネジメントにつながる',
+                '「誰も言い出せていないこと」を察知して言語化する習慣を持つ。空気を読みながら論理で整理できるあなたにしかできない役割がある'
+              ]
+            };
+          } else if (s.a <= 6 && s.cp <= 6) {
+            pat = {
+              text: '【関係重視型】直感と人間関係を大切にするスタイルです。チームの雰囲気を作る力がある反面、基準や判断の根拠があいまいになりやすいため、「最低限のルール」と「意思決定の根拠の共有」を意識的に取り入れると信頼が高まります。',
+              tips: [
+                'チームで守るべき「最低限のルール」を3つ明文化する。ルールは少なく・明確に・理由を添えると定着しやすい',
+                '重要な意思決定の根拠を記録して共有する習慣をつける。「なぜそう決めたか」の透明性がチームの信頼を作る',
+                '定期的に「今の方向性でみんな納得しているか」を確認する場を設ける。関係性の強みを活かして本音を引き出す'
+              ]
+            };
+          } else if (s.np >= 12) {
+            pat = {
+              text: '【サポート型】部下の話をよく聴き、フォローを惜しまないスタイルです。心理的安全の高いチームを作れますが、過保護になると部下の自立を妨げることがあります。',
+              tips: [
+                '「答えを教える」より「一緒に考える」姿勢を意識する。「どうしたらいいと思う？」と聞く回数を増やすことが部下の自律性を育てる',
+                '部下に仕事を任せたあと、口を出したくなった場面で一度踏みとどまる練習をする。任せ切ることへの不安より、部下の成長を優先する',
+                '四半期に一度「この部下に何を任せて成長させたいか」を言語化する。サポートから育成への意図的な転換が部下の飛躍につながる'
+              ]
+            };
+          } else if (s.a >= 12) {
+            pat = {
+              text: '【論理型】データと根拠に基づいた判断が強みで、複雑な状況を整理する力があります。感情的な場面でも冷静でいられる一方、メンバーの感情面へのケアを意識的に取り入れることがチームの信頼を高めます。',
+              tips: [
+                '判断を伝えるとき「なぜそう決めたか」を必ず言語化する。論理の透明性がチームの安心感につながる',
+                '1on1では数字・進捗の話より先に「最近どう？」と聞く時間を5分設ける。関係の温度がパフォーマンスに直結することを意識する',
+                '自分の判断に迷いが生じたとき「このメンバーならどう感じるか」を想像する習慣を持つ。論理だけでなく感情軸での検討がチームを動かす'
+              ]
+            };
+          } else {
+            pat = {
+              text: '特定の軸に大きな偏りがなく、状況に応じて柔軟に対応できるバランス型のマネジメントスタイルです。「今のチームに何が最も必要か」を定期的に確認することが、さらなる信頼の構築につながります。',
+              tips: [
+                'CP（基準）・A（判断）・NP（サポート）の3つを意識して、週の中でどれが足りなかったかを振り返る習慣を持つ',
+                '月に一度、部下に「最近自分のマネジメントで変えてほしいことはあるか」と聞いてみる。フィードバックを求める姿勢が信頼を作る',
+                '「今期のチームの課題」を一つ言語化して部下と共有する。管理職として何を大切にしているかを伝えることがチームの方向性を作る'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.text + tipsHtml;
+        }
+      },
+      育成: {
+        title: '部下・後輩の育成スタイル',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.cp >= 12 && s.np >= 12 && s.a >= 12) {
+            pat = {
+              text: '【総合育成型】高い基準・論理的説明・温かいフォローの三つを使いこなせる育成力があります。ただし完璧な指導を目指しすぎると自分が消耗するため「今期はこれ一つを育てる」と焦点を絞ることが育成の質を保つ鍵です。',
+              tips: [
+                '部下ごとに「今期一つだけ伸ばすスキル」を決める。全部を同時に指導しようとするより、焦点を絞ったほうが部下の成長が早い',
+                '指摘は「行動」に向け、指摘の後に「あなたへの期待」を必ずセットにする。「ここが違う→だからこそあなたならできる」の形が最も伝わる',
+                '「指示→任せる→振り返り」のサイクルを週単位で意識する。任せる時間を意図的に設計しないと、部下の自律性は育たない'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np >= 12) {
+            pat = {
+              text: '【厳しさ×温かさ型】高い期待とフォローを使い分けられる育成タイプです。指摘と承認のバランスが取れており「厳しいけど信頼できる上司」と感じてもらいやすいです。',
+              tips: [
+                '指摘のあとに「なぜそれが重要か」の背景を必ず伝える。理由を知ることで部下は「指導」として受け取りやすくなる',
+                '月に一度「あなたはこの3ヶ月でここが成長した」と具体的な変化を言語化して伝える。CPとNPが揃っているあなたの言葉は部下に深く届く',
+                '部下の成長段階に合わせて「指示量」を意図的に減らしていく。成長したら任せる量を増やすことが自律性を育てる'
+              ]
+            };
+          } else if (s.cp >= 12) {
+            pat = {
+              text: '【高基準指導型】高い基準を持ちながら育成するタイプです。「なぜそれが重要か」を伝え、指摘の後に必ず期待の言葉を添えることで指導が育成に変わります。',
+              tips: [
+                '指摘のあと「期待している」という言葉を必ず添える。指摘だけが続くと部下は「できない自分」しか見えなくなる',
+                '部下が自分から報告・相談してくるかを観察する。来ない場合は萎縮のサインかもしれない。「何でも聞いてね」を明示的に伝える',
+                '自分の「当たり前の基準」を言語化して共有する。無言の高い基準は部下を消耗させる。明文化することで安心して動けるようになる'
+              ]
+            };
+          } else if (s.np >= 12 && s.a >= 12) {
+            pat = {
+              text: '【寄り添い×論理型】部下の気持ちに共感しながら理由を丁寧に説明して理解させる育成スタイルです。「なぜそうするか」を大切にするため部下が主体的に動けるようになりやすいです。',
+              tips: [
+                '部下が困っているとき、すぐに答えを出すより「どこで詰まっているか」を一緒に整理してから解決策を考える',
+                '「結論→理由→具体例」の順で説明する。論理と共感の両方があるあなたの指導が最も活きる伝え方',
+                '部下が成長した場面を具体的に言葉にして伝える。「最近〇〇の精度が上がったね」の一言が次の成長を引き出す'
+              ]
+            };
+          } else if (s.np >= 12) {
+            pat = {
+              text: '【寄り添い型】部下に寄り添い、安心して成長できる環境を作るタイプです。成長に合わせて徐々に任せる量を増やすステップアップ型の育成が効果的です。',
+              tips: [
+                '「答えを教える」より「一緒に考える」姿勢を優先する。「どうしたらいいと思う？」と聞く回数を意識的に増やす',
+                '部下の成長段階を3段階（教える→サポートする→任せる）で意識し、今どの段階かを定期的に確認する',
+                '部下が成長した場面を具体的に言葉にして伝える。「最近〇〇が上手くなったね」の一言が自信を育てる'
+              ]
+            };
+          } else {
+            pat = {
+              text: '【自律環境型】部下が自ら考えて動く環境を重視するタイプです。明確な目標と振り返りの仕組みを整えると育成の効果が高まります。',
+              tips: [
+                '「今期の目標」を部下と一緒に言語化する。何を目指すかが共有されると、部下が自律的に動きやすくなる',
+                '週に一度「今週の振り返り」をする時間を5分設ける。振り返りの習慣が経験を成長に変える',
+                '部下が自分で判断した場面を積極的に認める。「自分で考えて動いてくれた」という承認が自律性を育てる'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.text + tipsHtml;
+        }
+      },
+      harassment: {
+        title: 'ハラスメント防止の観点',
+        fn: function(L, T, s) {
+          var risk = '';
+          if (s.cp >= 15) risk = '【要注意】CPが非常に高い状態です。「なぜできないんだ」「そんなこともわからないのか」という言い方が意図せずパワーハラスメントと受け取られるリスクがあります。指摘は「行動」に焦点を当て、人格を否定しない表現を心がけてください。';
+          else if (s.cp >= 12) risk = 'CPがやや高めです。自分の「当たり前の基準」が部下には高いハードルに感じられている可能性があります。期待を言葉にして伝え、達成可能なステップを一緒に設計する姿勢が重要です。';
+          else risk = 'CPは適切な範囲です。ただし管理職という立場の「権力差」は常に意識しておく必要があります。';
+          var ac_risk = s.ac >= 14 ? 'ACが高いため、部下がNOを言えない環境になっていないか確認が必要です。「断っていい」「相談していい」という心理的安全を言葉にして伝えてください。' : '';
+
+          var tips = [];
+          if (s.cp >= 15) {
+            tips = [
+              '指摘するとき「〇〇の行動について話したい」と行動を主語にする。「あなたは〜」ではなく「この件は〜」という表現がパワハラリスクを下げる',
+              '指摘・叱責の後に「期待している」「あなたは大切なメンバーだ」という言葉を必ずセットにする',
+              '月に一度、信頼できる同僚や上司に「自分の言動で気になることはあるか」と聞く。外からのフィードバックが自己認識のズレを正す'
+            ];
+          } else if (s.cp >= 12) {
+            tips = [
+              '「こうすべき」という基準を部下に伝えるとき「なぜそれが重要か」の背景を必ず添える。背景があると指示が指導に変わる',
+              '期待を言葉にして伝え「達成可能なステップ」を一緒に設計する。高い基準を押しつけるより、到達の道筋を一緒に作る姿勢が重要',
+              '定期的な1on1で「最近しんどいことはないか」を確認する場を作る。ハラスメント予防の最も効果的な手段の一つ'
+            ];
+          } else if (s.ac >= 14) {
+            tips = [
+              '「断っていい」「相談していい」という言葉を定期的にチームに伝える。心理的安全は言語化されて初めて部下に届く',
+              '部下が意見を言いにくそうにしているとき「どう思う？」と一言引き出す。沈黙を同意と取り違えない',
+              '定期的な1on1で「最近しんどいことはないか」を確認する場を作る。ハラスメント予防の最も効果的な手段の一つ'
+            ];
+          } else {
+            tips = [
+              '管理職という「権力差」を常に意識する。部下は断りにくい立場にいることを前提に関わる',
+              '「相談していい」「失敗してもいい」というメッセージを繰り返し伝える。心理的安全は一度言えば済むものではなく継続が必要',
+              '定期的な1on1で「最近しんどいことはないか」を確認する場を作る。ハラスメント予防の最も効果的な手段の一つ'
+            ];
+          }
+          var tipsHtml = '<div class="action-list">' +
+            tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return risk + (ac_risk ? ' ' + ac_risk : '') + tipsHtml;
+        }
+      },
+      motivation: {
+        title: 'チームのモチベーション維持',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.np >= 12 && s.fc >= 12) {
+            pat = {
+              text: '温かい承認と明るさが共に高く、チームの意欲を自然に高められる状態です。メンバーが「見てもらえている」と感じやすい環境を作れていますが、自分自身の疲弊サインを見逃しやすい点にも注意が必要です。',
+              tips: [
+                '「よくやった」ではなく「あのとき〇〇してくれたおかげで◯◯になった」と行動を具体的に認める言葉を使う。承認の質が部下の内発的動機を高める',
+                'チームに活気をもたらせる一方、「楽しさ」と「締め切り・品質」のバランスを意識的に保つ。ゆるくなりすぎると部下が不安になることがある',
+                '月1回「自分の充電は足りているか」を確認する。FCが高いぶんチームを鼓舞し続けられるが、自分が消耗するとチーム全体の雰囲気が一気に変わる'
+              ]
+            };
+          } else if (s.np >= 12 && s.cp >= 12) {
+            pat = {
+              text: '承認と基準のバランスが取れており、指摘と承認をセットで届けられるタイプです。部下から「厳しいけど信頼できる上司」と感じてもらいやすい状態です。',
+              tips: [
+                '指摘のあとに「期待している」「あなたを信頼している」という言葉を必ず添える。高い基準（CP）と温かさ（NP）が揃っているあなただからこそ、この「叱って・信じる」セットが部下に深く届く',
+                '1on1では成果の話だけでなく「仕事の中で楽しかった場面」を聞く時間を作る。感情にも目を向けることがモチベーション維持につながる',
+                '部下ごとに「何に達成感を感じるか」を把握する。人によって動機が異なることを意識して、関わり方を変える'
+              ]
+            };
+          } else if (s.np >= 12) {
+            pat = {
+              text: '温かい承認と「ありがとう」が自然に届けられる強みがあります。メンバーの努力プロセスを具体的に言葉にして認めることが、内発的モチベーションを高めます。',
+              tips: [
+                'メンバーの努力プロセスを言語化して伝える習慣を持つ。「頑張りが見えている」という一言が離職を防ぐことがある',
+                '承認は「一般論」より「あなたを見ている」が伝わる形にする。「最近◯◯のスピードが上がってきたね」という具体性が信頼につながる',
+                '1on1で「今の仕事で達成感はあるか」を四半期ごとに確認する。承認は渡すだけでなく、受け取れているか確認することも大切'
+              ]
+            };
+          } else if (s.fc >= 12 && s.a >= 12) {
+            pat = {
+              text: '活気と論理的な判断力が共に高く、チームに意味と楽しさの両方を届けられる状態です。「なぜこの仕事に意味があるか」を語れる力が、チームの中長期的な動機につながります。',
+              tips: [
+                'チームミーティングで「なぜこの仕事に意味があるか」を定期的に語る。論理的な説明に加え、自分がそれをどう感じているかも伝えると効果が増す',
+                '新しい取り組みを提案するとき「なぜやるか」と「やると楽しい」の両方を言葉にする。あなたの論理と熱量がチームの動機になる',
+                '自分のFCが落ちてきたと感じたとき（疲弊のサイン）は、チームの雰囲気も硬くなりやすい。自分のコンディションがチームに直結することを意識する'
+              ]
+            };
+          } else if (s.fc >= 12) {
+            pat = {
+              text: 'FCが高く、チームに活気をもたらす力があります。一方で、管理職としては「楽しさ」と「締め切り・品質」のバランスを意識的に保つことが求められます。',
+              tips: [
+                'チームに活気をもたらす力を活かし、週に一度「今週うまくいったこと」をチームで共有する場を作る',
+                '楽しい雰囲気を作る一方で「締め切り・品質・報告」の基準も明確に伝える習慣を持つ。ゆるくなりすぎるとメンバーが不安になることがある',
+                '自分のFCが落ちてきたと感じたら早めにセルフケアを優先する。管理職のコンディションはチームの雰囲気に直接影響する'
+              ]
+            };
+          } else if (s.np <= 8) {
+            pat = {
+              text: '成果への承認は意識的に行う必要があります。「よくやった」だけでなく「あのとき〇〇してくれたおかげで◯◯になった」と行動を具体的に認める言葉がメンバーの意欲につながります。',
+              tips: [
+                '「よくやった」だけでなく「あのとき〇〇してくれたおかげで◯◯になった」という具体的な承認を週1回意識的に届ける',
+                '1on1を月1回から隔週に増やすことを検討する。承認の頻度が増えるだけで部下の定着率が上がりやすい',
+                '部下の変化（元気がない・ミスが増えた）に気づいたら即声かけする。問題が深刻になる前に対話の場を作ることが離職防止の最も効果的な手段'
+              ]
+            };
+          } else {
+            pat = {
+              text: 'メンバー一人ひとりの動機を把握するために「何に達成感を感じるか」を1on1で聞く習慣を持つことが効果的です。仕事の意味・成長実感・承認の3つを届け続けることがモチベーション維持の基本です。',
+              tips: [
+                'メンバー一人ひとりの「何に達成感を感じるか」を1on1で聞く習慣を持つ。動機は人によって異なる',
+                '仕事の意味・成長実感・承認の3つを意識的に届け続ける。どれか一つが欠けるとモチベーションが下がりやすい',
+                '四半期ごとに「今の仕事で達成感はあるか」「3年後のキャリアをどう考えているか」をチームメンバーに確認する'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.text + tipsHtml;
+        }
+      },
+      retention: {
+        title: '離職防止・定着のために',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.cp >= 15) {
+            pat = {
+              text: '【高圧型リスク】離職の最大要因は「恐怖・萎縮による関係悪化」です。指摘の仕方そのものを見直すことが最優先課題です。',
+              tips: [
+                '指摘するとき「あなたは〜」ではなく「この件は〜」と行動・事実を主語にする。人格への批判と受け取られないための最初の一歩。',
+                '叱責・指摘の後に必ず「期待している」「あなたは大切なメンバーだ」という言葉をセットにする。指摘だけで終わると部下は「見放された」と感じる。',
+                '月に一度、信頼できる同僚や上司に「自分の言動で気になることはあるか」と尋ねる。自分では気づけない言動のクセを外から修正する機会を持つ。'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np <= 8) {
+            pat = {
+              text: '【指摘過多×温かみ不足型】部下は「基準はわかる、でもフォローがない」と感じやすいパターンです。指摘後のケアが離職防止の鍵になります。',
+              tips: [
+                '指摘・修正依頼の後、翌日以降に「あれ、どうなった？」と進捗を気にかける声かけを1回加える。叱った後の関わりが信頼を回復する。',
+                '部下の変化（元気がない・ミスが増えた）に気づいたら即声かけする。問題が深刻になる前に「最近どう？」の一言を習慣にする。',
+                '四半期に一度「今の仕事でつらいことはあるか」を1対1で聞く機会を設ける。言える環境を作ることが離職の早期発見につながる。'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np >= 12) {
+            pat = {
+              text: '【厳しさ×温かさ型】基準と温かさのバランスが取れており、離職リスクは比較的低いパターンです。ただし「高い期待」が無言のプレッシャーになっていないか注意が必要です。',
+              tips: [
+                '部下が自分から報告・相談してきているかを定期的に観察する。来ない場合は「話しにくい空気が生まれていないか」を確認するサイン。',
+                '四半期ごとに「今の仕事で達成感はあるか」「3年後のキャリアをどう考えているか」を1on1で確認する。成長感のなさが離職の主因になりやすい。',
+                '部下ごとに「何に達成感を感じるか」を把握し、その人に合った承認の言葉を使い分ける。同じ言葉でも響き方は人によって異なる。'
+              ]
+            };
+          } else if (s.a >= 12 && s.np <= 8) {
+            pat = {
+              text: '【論理優先×共感不足型】「評価は公正だが、気持ちをわかってもらえない」と部下が感じやすいパターンです。成果だけでなく感情にも目を向ける関わりが定着を高めます。',
+              tips: [
+                '評価や指摘の前に「最近しんどいことはなかった？」と一言聞く。論理の前に感情を受け止めることで、その後の言葉が届きやすくなる。',
+                '数字や結果だけでなく、プロセスや姿勢も言葉で認める。「頑張りが見えている」「あの場面での判断は良かった」という具体的な承認が離職を防ぐ。',
+                '「失敗してもいいから相談してほしい」というメッセージを繰り返し伝える。論理的な上司への相談は「正しくないといけない」というハードルが上がりやすい。'
+              ]
+            };
+          } else if (s.np >= 12 && s.cp <= 8) {
+            pat = {
+              text: '【関係重視×基準不明型】部下との関係は良好でも、成長機会や明確な基準がないと「将来が見えない」という理由で離職するリスクがあります。',
+              tips: [
+                '「何をすれば評価されるか」を言語化して定期的に共有する。基準の曖昧さは、温かい関係があっても不安と不満の原因になる。',
+                '四半期ごとに「3年後のキャリアをどう考えているか」を1on1で確認する。成長の見通しを一緒に描く機会を作ることが定着につながる。',
+                '「これはよくない」と感じた行動は、関係を壊さないよう柔らかくても、しっかり伝える。言わないことへの優しさが、長期的には部下の成長機会を奪う。'
+              ]
+            };
+          } else {
+            pat = {
+              text: '【バランス型】特定のリスクパターンは見られませんが、定着は「関係の質」と「成長の実感」の掛け合わせで決まります。継続的な関わりを大切にしてください。',
+              tips: [
+                '四半期ごとに「今の仕事で達成感はあるか」「3年後のキャリアをどう考えているか」を1on1で確認する。成長感のなさはじわじわと離職意向につながる。',
+                '「失敗してもいいから相談してほしい」というメッセージを繰り返し伝える。心理的安全性は一度作れば終わりではなく、発信し続けることで維持される。',
+                '部下ごとに「何に達成感を感じるか」を把握し、その人に合った承認の言葉を意識して使い分ける。画一的な評価より、個別に届く言葉が定着を高める。'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.text + tipsHtml;
+        }
+      }
+    }
+  },
+  '一般': {
+    label: '一般',
+    color: '#1a5c34',
+    bgColor: '#e8f5e9',
+    themes: ['リーダーシップ醸成', '上司・先輩との関わり方', '後輩・同僚のサポートスタイル', 'モチベーション', 'レジリエンス'],
+    intro: 'あなたは組織の中核を担う一般職として、上司・先輩からの期待と後輩・新人へのサポートを同時に担う立場にいます。エゴグラムのパターンは、その「はざま」でどのように力を発揮しているかを映し出しています。',
+    sections: {
+      leadership: {
+        title: 'リーダーシップの醸成',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.cp >= 12 && s.a >= 12 && s.np >= 12) {
+            pat = {
+              style: '【三軸型リーダーシップ】CP・A・NPがすべて高く、「基準を示す・論理的に判断する・メンバーをフォローする」三つの力を兼ね備えています。管理職予備群として周囲から頼られやすいタイプですが、完璧を求めすぎると自分が消耗しやすいです。',
+              tips: [
+                '「全部自分でやらなければ」という感覚が強くなったとき、意識的に誰かに任せる機会を作る。リーダーシップの成熟は「任せる力」にある',
+                '会議や議論では、まず周囲の意見を引き出してから自分の見解を述べる順序を意識する。あなたの発言には重みがあるため、最初に結論を出すと他の意見が出にくくなることがある',
+                '自分の「強みの組み合わせ」を把握したうえで、場面によって前に出る力・支える力・整理する力を使い分ける'
+              ]
+            };
+          } else if (s.cp >= 12 && s.np >= 12) {
+            pat = {
+              style: '【厳しさ×温かさ型リーダーシップ】基準を高く持ちながらも周囲へのサポートを怠らない「管理職予備群」のような存在感があります。後輩には特に大きな影響を与えています。',
+              tips: [
+                '指摘のあとに必ず「期待している」という言葉を添える習慣を持つ。CPとNPのバランスが取れているときの言葉は後輩に深く届く',
+                '先輩・上司との議論では「〇〇という理解でよいですか？」と論点を確認してから意見を述べる。主張の前に「聴く姿勢」を見せることで信頼が増す',
+                '今の自分のリーダーシップスタイルを後輩に言語化して伝えてみる。教えることが自分の成長を加速させる'
+              ]
+            };
+          } else if (s.a >= 12 && s.np >= 12) {
+            pat = {
+              style: '【調整・橋渡し型リーダーシップ】論理的な整理力と周囲への気配りが組み合わさり、チームの「調整役」として力を発揮できます。意見が対立したときや複雑な状況を整理するときに特に存在感を発揮します。',
+              tips: [
+                '会議で意見が分かれたとき「両方の主張をまとめると〇〇と〇〇ということですね」と整理する役を意識的に引き受ける',
+                '論理的な整理だけでなく「この件、〇〇さんはどう思いますか？」と声をかける習慣を持つ。誰も拾わない意見を拾う力がチームの信頼につながる',
+                '自分の判断に自信が持てないときは、論理と感情の両面から考えてみる。あなたの強みはその両方を持っていること'
+              ]
+            };
+          } else if (s.cp >= 12 && s.a >= 12) {
+            pat = {
+              style: '【問題提起型リーダーシップ】高い基準と論理的思考が組み合わさり「課題を見つけ・根拠を持って提言する」力があります。職場の改善や品質向上に貢献できますが、感情面への配慮を添えることで主張がより受け入れられやすくなります。',
+              tips: [
+                '課題や問題点を指摘するとき「現状の問題→理由→改善案」の順番で伝えると説得力が増す',
+                '提案が感情的な反発を受けたとき「まず相手の言い分を聞く」時間を意識的に持つ。正しさよりも関係性が変化を生む',
+                '自分の提言が却下されたとき「なぜ通らなかったか」を組織・関係性の視点から振り返る習慣を持つ'
+              ]
+            };
+          } else if (s.np >= 12 && s.fc >= 12) {
+            pat = {
+              style: '【チームを温める型リーダーシップ】支援力と明るさが組み合わさりチームの雰囲気を良くする力があります。後輩が相談しやすい環境を自然に作り出せるタイプです。',
+              tips: [
+                'チームの雰囲気を整える役割を意識的に引き受ける。「最近どう？」の一言がチームの心理的安全を作る',
+                '盛り上げ役になりすぎると消耗することがある。自分のエネルギーが低い日は意識的に休む時間を確保する',
+                '楽しい雰囲気の中でも「締め切り・品質」を意識的に伝える習慣を持つ。それがあなたを単なるムードメーカーではなく信頼できる存在にする'
+              ]
+            };
+          } else if (s.cp >= 12) {
+            pat = {
+              style: '【率先型リーダーシップ】基準を示しチームの方向性を引っ張る力があります。意見をはっきり述べることで周囲から信頼を得やすいですが「自分の基準」が「チームの基準」とズレていないか確認する姿勢も大切です。',
+              tips: [
+                '意見を述べた後に「みんなはどう思う？」と聞く一言を必ず添える。発言の独占を防ぎ、チームの主体性を育てる',
+                '後輩に指摘する際は「行動への指摘」に絞る。人格・能力への評価は避け「次はこうしてみて」という前向きな表現を意識する',
+                '月に一度「自分が当たり前だと思っていること」を一つ書き出して見直す。基準のアップデートが信頼を保つ'
+              ]
+            };
+          } else if (s.np >= 12) {
+            pat = {
+              style: '【支援型リーダーシップ】困っている人を見捨てない温かいサポートが強みです。チームの心理的安全を作り出す力があります。ただし頼まれると断れない傾向がある場合は「自分のキャパシティ」を意識することも大切です。',
+              tips: [
+                '支援するときは「答えを教える」より「一緒に考える」姿勢を優先する。自立を促すサポートが長期的な信頼を生む',
+                '自分のキャパシティが満杯のときは「少し待ってもらう」か「一部だけ手伝う」を使い分ける。燃え尽きのほうがチームへの影響が大きい',
+                '後輩の成長を言語化して伝える習慣を持つ。「最近〇〇が上手くなったね」という一言が後輩の自信につながる'
+              ]
+            };
+          } else if (s.a >= 12) {
+            pat = {
+              style: '【問題解決型リーダーシップ】論理的な整理と判断が強みで、会議でのまとめ役や複雑な状況の整理役として力を発揮できます。感情的になりにくい強みがある反面、チームの感情面を見落としやすい点に意識を向けましょう。',
+              tips: [
+                '議論を整理するとき、論点だけでなく「それぞれの人が何を大切にしているか」も拾う意識を持つ',
+                '問題解決の場で「こういう理解であってますか？」と確認を挟む習慣が誤解の防止と信頼形成に効く',
+                '解決策を提案する際「なぜその方法が良いか」だけでなく「どんな不安があるか」にも触れると受け入れられやすくなる'
+              ]
+            };
+          } else if (s.fc >= 12) {
+            pat = {
+              style: '【革新型リーダーシップ】発想力と明るさで周囲を動かす力があります。新しい視点やアイデアで場を活性化できるタイプです。アイデアを「実行に移す力」と「継続する力」を意識的に鍛えることが次の成長につながります。',
+              tips: [
+                'アイデアを出したら「次の一手」を必ず決める。アイデア出しで終わらず「誰が・何を・いつまでに」に落とし込む習慣が信頼を生む',
+                '自分のアイデアへの反応が鈍いとき「なぜ伝わらなかったか」を論理的に振り返る。熱量より「相手に何が刺さるか」を考える練習が効く',
+                '身近な後輩に「最近こんなこと考えているんだけど、どう思う？」と話しかける。あなたの発想は後輩の視野を広げる力がある'
+              ]
+            };
+          } else {
+            pat = {
+              style: '特定のスコアに大きな偏りがなく、状況に応じて柔軟にリーダーシップを発揮できるバランス型です。「どんなリーダーシップを発揮したいか」を自分で意識することが次のステップです。',
+              tips: [
+                'まずは身近な一人を助けることから始める。リーダーシップは「大きな決断」より「小さな行動の積み重ね」から育つ',
+                '会議で誰かの発言に「それいいですね」と声に出して応じる。肯定の一言がチームの心理的安全を作る',
+                '自分の仕事の進め方を後輩にひとつ共有する。教えることで自分の理解も深まり、頼られる存在になっていく'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.style + tipsHtml;
+        }
+      },
+      seniorRelation: {
+        title: '上司・先輩との関わり方',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.ac >= 13 && s.cp >= 12) {
+            pat = {
+              profile: '【表では従う・内では溜め込むタイプ】上司・先輩に合わせながらも、内心では「それって違うのでは？」という感覚を抱えやすいです。一般職としての立場上この葛藤は珍しくありませんが、長く続くと急に爆発したり無気力になるリスクがあります。「小出しに伝える技術」が鍵です。',
+              tips: [
+                '違和感を感じたら「1週間後も同じことが気になるか」を確認する。そうなら「少し聞いてもいいですか？」と場を設けて伝える。溜めて爆発するより小出しが関係を守る',
+                '意見を言うときは「私の理解ではこうなのですが、間違っていたら指摘ください」という形にする。主張ではなく確認形にするだけで受け取られ方が変わる',
+                '週に一度「今週モヤモヤしたこと」を紙に書き出す。誰かに伝えるかどうかより、まず自分が整理できていることが大切'
+              ]
+            };
+          } else if (s.ac >= 13 && s.fc >= 12) {
+            pat = {
+              profile: '【普段は合わせるが感情が爆発しやすいタイプ】日頃は上司・先輩に気を使って合わせているぶんストレスが溜まると感情が一気に表に出てしまうことがあります。「我慢→爆発」のサイクルを「小出しに表現する」に変えることが、立場を守りながら意見を届ける鍵です。',
+              tips: [
+                '毎日終業前に「今日の感情」を一言だけ書き出す（しんどい・嬉しい・モヤモヤ）。感情を溜めないことが爆発を防ぐ最初のステップ',
+                'フィードバックをもらったとき感情的になりそうな場合は「少し考えてから返事していいですか？」と一言伝えてその場を切り抜ける',
+                '信頼できる同期や後輩に「最近どう？」と話す機会を週1回作る。感情の出口を確保しておくことで、思わぬタイミングでの爆発が減る'
+              ]
+            };
+          } else if (s.ac >= 13) {
+            pat = {
+              profile: '【気を使いすぎ・我慢タイプ】上司・先輩の顔色をうかがいすぎて疑問や不満を飲み込んでしまいがちです。「言いにくい空気」は確かに存在しますが、伝え方を工夫することで関係を壊さずに意見を届けることができます。',
+              tips: [
+                '疑問は「こういう理解で合っていますか？」と確認形にして伝える。「聞く＝仕事を前に進める行動」と捉え直す',
+                '報告・連絡は「完璧にまとめてから」より「進捗を途中でも共有する」を優先する。「まだ途中ですが…」の一言が信頼を作る',
+                '1on1や面談の場で「最近こんなことを考えています」と自分から話す練習をする。会話の回数が増えるほど「言いやすい関係」になっていく'
+              ]
+            };
+          } else if (s.cp >= 13 && s.a >= 12) {
+            pat = {
+              profile: '【論理×主張型】自分の意見を根拠を持って述べる力があり、上司・先輩との議論でも引き下がりません。「正しさ」と「受け入れられやすさ」は別物であることを意識すると、より影響力が増します。',
+              tips: [
+                '主張の前に「おっしゃる通りの部分もあると思います」と相手の言い分を一部認める言葉を添える。論理の正しさより「対話している感」が信頼をつくる',
+                '意見が通らなかったとき「なぜ通らなかったか」を組織・関係性の視点から振り返る習慣を持つ。次に活かす姿勢が周囲の評価を高める',
+                '上司・先輩との会議では「まず聞く・次に整理する・最後に意見を言う」の順序を意識する'
+              ]
+            };
+          } else if (s.cp >= 13) {
+            pat = {
+              profile: '【主張が強め・衝突しやすいタイプ】自分の意見や「こうあるべき」という感覚が強く、上司・先輩の指示に疑問を感じたとき反発やモヤモヤが表に出やすいです。伝え方とタイミングを工夫することで、主張を「力」として活かせます。',
+              tips: [
+                '指示を受けたとき、まず動いてみる。疑問は行動後か1on1の場で「確認してもいいですか？」と伝える',
+                '意見を言うときは「私はこう感じたのですが、どうですか？」と問いかけ形にする。断言より対話が相手の心を開く',
+                '感情が高ぶったと気づいたら「少し考えます」と言ってその場を離れる。冷静になってから伝えた意見のほうが必ず正確に届く'
+              ]
+            };
+          } else if (s.a >= 12 && s.np >= 12) {
+            pat = {
+              profile: '【論理×共感型】物事を客観的に整理しながら相手の気持ちにも配慮できるバランスの取れたタイプです。上司・先輩からの信頼を得やすく、ブリッジ役として機能しやすいです。',
+              tips: [
+                '上司・先輩への報告は「結論→根拠→対処案」の順で届けると評価が上がる。論理と感情の両方を持っているあなたの強みを活かす形',
+                '問題が起きたとき「自分が変えられること」と「自分では変えられないこと」を分けて考え、前者に集中する姿勢が周囲を安心させる',
+                '年に一度、上司に「私の成長のためにフィードバックをください」と自ら聞きに行く。主体的な成長姿勢は管理職から高く評価される'
+              ]
+            };
+          } else {
+            pat = {
+              profile: '【バランス型】特定のスコアに極端な偏りがなく状況に応じて上司・先輩と適切な関係を築けるタイプです。報告・連絡・相談の基本を丁寧に実践することが着実な信頼構築につながります。',
+              tips: [
+                '報告・連絡・相談は「困ってから」より「困る前」に行う。進捗の途中報告を習慣にすると、上司が安心してあなたに仕事を任せるようになる',
+                '自分の意見を一言添える習慣を持つ。「わかりました」だけでなく「〇〇という理解で進めます」と確認形にすると主体性が伝わる',
+                '年に一度「上司・先輩から学んだこと」を言語化して感謝を伝える。関係性を育てる意識がキャリアを加速させる'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.profile + tipsHtml;
+        }
+      },
+      juniorSupport: {
+        title: '後輩・同僚へのサポートスタイル',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.np >= 12 && s.a >= 12 && s.cp >= 12) {
+            pat = {
+              style: '【総合指導型】寄り添い・論理的説明・高い基準の3つを持ち合わせており、後輩の育成に大きな力を発揮できます。一方、完璧な指導を求めすぎると自分が疲弊するリスクがあります。',
+              tips: [
+                '「指示→任せる→振り返り」のサイクルを意識する。手を動かして教えることより、後輩が自分で気づく場を作ることが育成の核心',
+                '後輩の失敗を指摘するときは「行動」に焦点を当て「次はこうしよう」で終わる。指摘の後に期待の言葉を必ずセットにする',
+                '自分のキャパシティが満杯のときは指導の量より質を下げない範囲で「今週はこれ一つ」と絞る。燃え尽きるより持続できることを優先する'
+              ]
+            };
+          } else if (s.np >= 12 && s.cp >= 12) {
+            pat = {
+              style: '【厳しさ×温かさ型指導】高い期待とフォローを組み合わせることで後輩の成長を引き出せます。指摘と承認のバランスが取れており「厳しいけど信頼できる先輩」と感じてもらいやすいタイプです。',
+              tips: [
+                '後輩への指摘は「なぜそうするか」の背景説明とセットにする。理由がわかると納得感が生まれ次の行動につながる',
+                '「よくやった」だけでなく「あのとき〇〇してくれたおかげで助かった」という具体的な承認が後輩の内発的動機を育てる',
+                '定期的に「最近どう？難しいことある？」と一言聞く機会を持つ。指導だけでなく対話があることで後輩が相談しやすくなる'
+              ]
+            };
+          } else if (s.np >= 12 && s.a >= 12) {
+            pat = {
+              style: '【寄り添い×論理型指導】後輩の気持ちに共感しながら理由を丁寧に説明して理解させる指導スタイルです。「なぜそうするか」を大切にするため後輩が主体的に動けるようになりやすいです。',
+              tips: [
+                '後輩が困っているとき、すぐに答えを出すより「どこで詰まっているか」を一緒に整理してから解決策を考える',
+                '説明するときは「結論→理由→具体例」の順で伝える。論理と共感の両方があるあなたの強みが最も活きる伝え方',
+                '後輩が成長した場面を具体的に言葉にして伝える習慣を持つ。「最近〇〇の精度が上がったね」という一言が後輩の自信を育てる'
+              ]
+            };
+          } else if (s.np >= 12 && s.fc >= 12) {
+            pat = {
+              style: '【楽しく巻き込む型指導】明るさとサポート力が組み合わさり後輩が相談しやすい雰囲気を自然に作り出せます。「この先輩と仕事すると楽しい」と感じてもらいやすいタイプです。',
+              tips: [
+                '楽しい雰囲気の中でも「締め切り・品質・報告」の基本ルールは明確に伝える。ゆるくなりすぎると後輩の成長の機会を奪うことがある',
+                '後輩のミスを笑いに変える前に、まず「どう改善するか」を一緒に考える場を作る。明るさとフォローのバランスが育成につながる',
+                '後輩が相談してきたとき「どうしたいか」を先に聞いてから意見を述べる。答えを先に出すより考える力を育てる関わりを意識する'
+              ]
+            };
+          } else if (s.cp >= 12) {
+            pat = {
+              style: '【高い基準で指導するタイプ】後輩への期待が高くちゃんとしたものを届けようとする姿勢は信頼の源です。ただし基準が厳しすぎると後輩が萎縮してしまうことがあるため「承認・期待の言語化」を意識的に取り入れましょう。',
+              tips: [
+                '指摘は「行動」に向け「あなたへの期待」を同時に伝える。「ここが違う、だからこそあなたならもっとできる」の形が最も伝わる',
+                '後輩が自分から報告・相談してくるかを観察する。来ない場合は萎縮のサインかもしれない。「何でも聞いてね」を明示的に伝える機会を作る',
+                '自分の「当たり前の基準」が後輩には高いハードルに見えていないか定期的に確認する。基準の共有プロセスを丁寧にすることが育成の質を高める'
+              ]
+            };
+          } else if (s.ac >= 12) {
+            pat = {
+              style: '【後輩に合わせすぎる傾向】後輩のペースや希望に合わせようとする気遣いは優しさの表れですが「嫌われたくない」「失望させたくない」という感覚が強くなると必要な指摘ができなくなることがあります。',
+              tips: [
+                '指摘しにくいことを「これは成長のためだから伝えよう」と自分に言い聞かせてから口にする。伝えないことが後輩への親切にならないこともある',
+                '後輩からの依頼を断るときは「今は難しいが、〇〇なら手伝える」という形で代替を示す。断ることへの罪悪感を和らげる言い方を練習する',
+                '後輩の仕事を「任せる」と決めたら口を出さない時間を作る。口出しを減らすことが後輩の主体性を育てる最初のステップ'
+              ]
+            };
+          } else {
+            pat = {
+              style: '【バランス型サポート】特定の偏りがなく状況に応じて後輩への関わり方を調整できるタイプです。後輩に自分の失敗談や学びのプロセスを共有することが最も効果的なサポートになります。',
+              tips: [
+                '後輩には「正しいこと」より「経験」を届ける。自分の失敗談と「どう乗り越えたか」を話すと後輩の心に届きやすい',
+                '「指示→任せる→振り返り」のサイクルを意識する。完全に任せると後輩の成長スピードが上がる',
+                '後輩が成長した場面を具体的に言葉にして伝える習慣を持つ。「最近〇〇がよくなった」の一言が次の行動を生む'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.style + tipsHtml;
+        }
+      },
+      motivation: {
+        title: '自分のモチベーションを知る',
+        fn: function(L, T, s) {
+          var base = T.work;
+          var pat;
+          if (s.fc >= 12 && s.np >= 12) {
+            pat = {
+              text: '「楽しい×役に立つ」の両方が満たされているとき最も力を発揮できます。単調な業務が続くときは後輩サポートなど人との関わりから意欲を補充しましょう。どちらか一方が欠けると意欲が落ちやすいため、両方のバランスを意識的に確認してください。',
+              tips: [
+                '「楽しかった」「役に立てた」の両方を感じた瞬間を週1つ書き留める。両方揃っているときの自分のエネルギー状態を意識的に覚えておく',
+                'どちらか一方が欠けてきたと感じたら、もう一方で補充する。楽しさが減ったら後輩支援の場を増やすなど、バランスを意識的に調整する',
+                '単調な期間が続くときは「この仕事の先にどんな人が助かるか」を想像する。貢献の先を意識するだけで意欲が回復しやすい'
+              ]
+            };
+          } else if (s.fc >= 12 && s.cp >= 12) {
+            pat = {
+              text: '理想×情熱がエネルギー源です。「こうあるべき」という高い基準とやる気の波が組み合わさると、全力で突っ走って燃え尽きるリスクがあります。意識的に「8割の力で動く場面」を作ることが長期的な活力を保つ鍵です。',
+              tips: [
+                '「今の自分は何割の力で動いているか」を毎週数字で確認する。8割を超えたら意識的に休む場面を1つ作る',
+                '理想と現実のギャップを感じたとき「今自分が変えられること」と「今は変えられないこと」を紙に分けて書く。変えられることに集中する',
+                '情熱が落ちた日を「充電期間」と再定義する。エネルギーには波があることを前提に、低い日のルーティンを持っておく'
+              ]
+            };
+          } else if (s.a >= 12 && s.fc >= 12) {
+            pat = {
+              text: '論理×活力型です。「なぜこの仕事があるのか」が腹落ちしているとき、エネルギーが最大化します。業務の全体像や意義が見えないとモチベーションが下がりやすいため「この仕事の先にあるもの」を定期的に確認しましょう。',
+              tips: [
+                '自分の仕事が「誰の・何の役に立っているか」を月1回言語化する。意義が腹落ちするとエネルギーが長持ちする',
+                '業務の全体像が見えにくいときは上司や先輩に「この仕事の先はどうなっているか」を聞く。理解が深まるとモチベーションが復活しやすい',
+                '「なぜこれをやるのか」が腹落ちしないまま動くと意欲が落ちやすい。疑問はそのままにせず早めに言語化して確認する'
+              ]
+            };
+          } else if (s.ac >= 12 && s.fc <= 8) {
+            pat = {
+              text: '我慢が続くと意欲が静かに低下するパターンです。「楽しくなかったのはいつからか」を振り返ってみましょう。自分の本音と向き合い、信頼できる人に話すことがモチベーション回復の第一歩です。',
+              tips: [
+                '「楽しいと感じられなくなったのはいつからか」を振り返り、時期と出来事を書き出してみる',
+                '信頼できる同僚や先輩に「最近少し悩んでいる」と話す機会を今週中に作る。話すだけで整理できることがある',
+                '今の状況で「自分が変えられること」を1つだけ特定して、今週中に試してみる'
+              ]
+            };
+          } else if (s.fc >= 12) {
+            pat = {
+              text: '楽しさや新しいことへの挑戦がエネルギー源です。単調な業務が続くときは自分なりの工夫や遊び心を加えるか、スキルアップの機会を作ることで意欲が回復しやすいです。',
+              tips: [
+                '今の業務の中で「一番面白いと感じる部分」を書き出す。その要素を意識的に増やせないか考える',
+                '単調な期間が続くときは「この業務に自分流の工夫を加えるとしたら何か」を考える。小さな創意工夫がモチベーションを維持する',
+                'スキルアップの機会を自ら探す習慣を持つ。「次に挑戦したいこと」を常に1つ持っておくことがエネルギーを絶やさない'
+              ]
+            };
+          } else if (s.fc <= 6) {
+            pat = {
+              text: '安定した環境と明確なゴールがあるとき着実に力を発揮できます。「今日のゴール」を明確に設定することがやる気の維持につながります。大きな目標より「今週達成できること」に集中してみましょう。',
+              tips: [
+                '毎朝「今日達成できること」を1〜3つ書いてから仕事を始める。小さなゴールの積み重ねが着実な前進感を生む',
+                '自分がうまくできていることを月1回リストアップする。「できた」の積み重ねを見えるようにすることがやる気の基盤になる',
+                '大きな変化より「今日1つだけ改善できること」を探す習慣を持つ。着実な改善の積み重ねがモチベーションを最も維持しやすい'
+              ]
+            };
+          } else if (s.np >= 12) {
+            pat = {
+              text: '誰かの役に立てたと感じるとき、モチベーションが高まります。後輩や同僚をサポートできる場面を意識的に作ることが自分自身の活力補充にもなります。',
+              tips: [
+                '今週「誰かの役に立てた場面」を1つ書き留める。小さな貢献を見えるようにすることが継続の力になる',
+                '後輩や同僚から感謝されたこと・頼られたことを記録しておく。モチベーションが落ちたとき見返すことで回復しやすい',
+                '「誰かのために動きたい」という気持ちが薄れてきたときは自分自身が消耗している可能性がある。まず自分への回復を優先する'
+              ]
+            };
+          } else if (s.a >= 12) {
+            pat = {
+              text: '「なぜこの仕事があるのか」「どういう仕組みで動いているのか」という理解があると動きやすいタイプです。業務の全体像を把握し自分の役割が組織にどう貢献しているかを言語化してみましょう。',
+              tips: [
+                '自分の業務が「どのようにチームや会社に貢献しているか」を一文で言語化してみる。意義が明確になると動きやすくなる',
+                '業務の全体像を把握するために「上流と下流で何が起きているか」を上司や関係者に定期的に確認する習慣を持つ',
+                '「この仕事を通じて3ヶ月後にどんな力をつけたいか」を書いてみる。成長の方向性が見えると意欲が持続しやすい'
+              ]
+            };
+          } else {
+            pat = {
+              text: '環境の変化に比較的柔軟に対応できるバランス型です。意識的に「今の仕事で得ているもの」を言語化することがモチベーション維持につながります。',
+              tips: [
+                '今の仕事で「得ていること・学んでいること」を月1回書き出す。「なぜここにいるか」を言語化することが動機の基盤になる',
+                'モチベーションが下がったとき「最近うまくいったこと」を3つ書き出す。できたことを見ることで気持ちが整理される',
+                '今週中に達成できる「小さな目標」を一つ設定する。達成感の積み重ねが意欲の基盤を作る'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return base + ' ' + pat.text + tipsHtml;
+        }
+      },
+      resilience: {
+        title: 'レジリエンス（折れない力）を高めるヒント',
+        fn: function(L, T, s) {
+          var weak;
+          if (s.ac >= 14 && s.cp >= 13) {
+            weak = {
+              label: '完璧主義×我慢型',
+              text: '高い基準を自分に課しながら周囲にも合わせようとするパターンです。「ちゃんとやらなければ」という意識と「嫌われたくない」という感覚が重なると静かに消耗していきます。爆発か無気力かのどちらかで限界が来やすいです。',
+              hint1: '週末に「今週できたこと」を3つだけ書く。できなかったことより、できたことを見る習慣が自己消耗を防ぐ',
+              hint2: '「〜すべき」という言葉が頭に浮かんだとき「〜できたらいい」に言い換えてみる。1語の変換が心の余白を作る',
+              hint3: '信頼できる同僚に「最近ちょっとしんどくて」と言える練習をする。解決策より聞いてもらうだけで回復できる'
+            };
+          } else if (s.cp >= 14 && s.fc >= 13) {
+            weak = {
+              label: '情熱×理想の燃え尽き型',
+              text: '「こうあるべき」という強い信念とやる気の高さが組み合わさると全力で突っ走った末に燃え尽きるパターンが出やすいです。理想が現実に阻まれたとき強いフラストレーションが一気に来ます。',
+              hint1: '今週の自分の「力の使い方」を振り返り、8割超えで動いていたら翌週に「意図的に手を抜く場面」を一つ設計する',
+              hint2: '理想と現実のギャップを感じたとき「今自分が変えられること」と「今は変えられないこと」を紙に分けて書く',
+              hint3: '情熱が落ちた日を「充電期間」と再定義する。エネルギーには波があることを前提に、低い日のルーティンを持っておく'
+            };
+          } else if (s.np >= 13 && s.ac >= 12) {
+            weak = {
+              label: '世話好き×自己犠牲型',
+              text: '人の役に立ちたい気持ちと相手に合わせる傾向が重なり「断れない・頼めない・限界まで引き受ける」パターンに陥りやすいです。周囲からは頼られて嬉しい反面、自分のリソースが静かに枯渇していきます。',
+              hint1: '今週1回だけ「今は難しいです」と断る練習をする。断っても関係は壊れない、という体験を積み重ねることが大切',
+              hint2: '「してあげたこと日記」ではなく「してもらったこと日記」をつける。もらっている感謝に気づくことがエネルギーの補充になる',
+              hint3: '疲れたと感じたとき「誰かに頼る」を意識的に選ぶ。チームで動く場所での頼ることは弱さではなく、関係を深めるきっかけになる'
+            };
+          } else if (s.ac >= 14) {
+            weak = {
+              label: '静かな我慢型',
+              text: 'ストレスを外に出さないため周囲が気づかないまま疲弊が積み重なります。「まだ大丈夫」が口癖になりやすく実際に限界を超えてから初めて自覚するケースが多いです。',
+              hint1: '毎週「今の我慢レベル」を10段階で確認する。7点以上なら翌週中に必ず誰かに話す機会を作る',
+              hint2: '「聞いてほしいことがあって」という言葉を週1回使う練習をする。解決策は不要。聞いてもらうだけで回復できる',
+              hint3: '自分の「疲れのサイン」を3つ書き出しておく（食欲・睡眠・口数など）。サインに気づいたらセルフケアを優先する'
+            };
+          } else if (s.cp >= 14 && s.a >= 13) {
+            weak = {
+              label: '完璧主義×抱え込み型',
+              text: '高い基準と論理的な判断力が組み合わさると「自分がやらなければ」「他の人では不十分」という感覚に陥りやすく孤独に抱え込んで消耗するパターンです。正しい判断をするほど、周囲との距離が開きます。',
+              hint1: '今週、誰かに仕事を一つ任せてみる。完璧でなくてもいい。「任せた体験」がレジリエンスを育てる',
+              hint2: '失敗したとき「自分は何がダメだったか」ではなく「何を学んだか・次は何をするか」を問い直す癖をつける',
+              hint3: '週1回、意図的に「雑談だけの時間」を作る。成果と関係ない会話が精神的な余白を生む'
+            };
+          } else if (s.fc >= 14 && s.a <= 7) {
+            weak = {
+              label: '感情波・衝動型',
+              text: 'テンションが高いときと低いときの落差が大きく、低いときに「向いていないかも」と強く感じやすいパターンです。気分が落ちたとき衝動的な決断をしやすいため「低い日は決断しない」ルールが自分を守ります。',
+              hint1: '気分が落ちた日は「今日は低エネルギーデー」と宣言して、大きな決断を翌日以降に持ち越す',
+              hint2: '「元気リスト」を作る：自分が確実に回復できる音楽・場所・行動を5つ書いておく。落ちたときに考える余力はないので事前に用意しておく',
+              hint3: '感情のアップダウンを記録してみる。波のパターンがわかると「また来た」と客観視でき、飲み込まれにくくなる'
+            };
+          } else if (s.cp >= 13) {
+            weak = {
+              label: '基準高め・フラストレーション型',
+              text: '「こうあるべき」という基準が高いため現実や周囲が期待通りでないときに強いフラストレーションを感じます。正しさへのこだわりは強みである一方、それが満たされないときのエネルギー消費が大きいです。',
+              hint1: '怒りやフラストレーションを感じたとき「なぜ自分はこれを重要視しているか」を30秒で書く。感情の根っこを理解すると流し方が変わる',
+              hint2: '「80点合格ルール」を意識的に使う。完璧な準備より80点の行動を素早く繰り返す練習が回復力を育てる',
+              hint3: '週末に「今週うまくいったこと」を3つ書く。できなかったことより、できたことを見る習慣が自己肯定感を守る'
+            };
+          } else {
+            weak = {
+              label: 'バランス型',
+              text: '特定の偏りがなく比較的安定した状態を維持できています。折れにくさをさらに高めるには、意識的にストレスへの「気づきと表現」の習慣を持つことが有効です。',
+              hint1: '毎週金曜に「今週のストレス度」を10段階でメモする。変化を追うことで早期に対処できる',
+              hint2: '信頼できる同僚と月1回「最近どう？」という雑談の時間を作る。困ってから話すより定期的に話す関係が支えになる',
+              hint3: '自分が「回復できること」を3つ把握しておく。落ちたときのルーティンがあると早く立て直せる'
+            };
+          }
+          var weakBox = '<div style="background:#fff7ed;border-left:4px solid #c05621;padding:12px 16px;border-radius:0 6px 6px 0;margin:12px 0">' +
+            '<div style="font-weight:700;color:#c05621;margin-bottom:6px">折れやすいポイント：' + weak.label + '</div>' +
+            '<div style="color:#7b341e;line-height:1.8">' + weak.text + '</div>' +
+            '</div>';
+          var hintsHtml = '<div class="action-list">' +
+            [weak.hint1, weak.hint2, weak.hint3].map(function(h, i){
+              return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+h+'</div></div>';
+            }).join('') + '</div>';
+          return 'レジリエンス（回復力）とは、困難に直面したときしなやかに立ち直る力のことです。上司と後輩の「はざま」に置かれる一般職特有のストレスパターンから、あなたの折れやすいポイントと立て直しのヒントを確認しましょう。' + weakBox + hintsHtml;
+        }
+      }
+    }
+  },
+  '若手': {
+    label: '若手',
+    color: '#7a4f0a',
+    bgColor: '#fef6e4',
+    themes: ['先輩との関わり方', 'モチベーション', '自己成長', '離職防止'],
+    intro: 'あなたはキャリアの出発点にいる若手として、今のエゴグラムパターンを知ることが、職場での「自分らしい成長」の地図になります。今の傾向に良い・悪いはありません。まず自分を知ることから始めましょう。',
+    sections: {
+      seniorRelation: {
+        title: '先輩・上司との関わり方',
+        fn: function(L, T, s) {
+          // ── 複合パターン判定（優先順位順に評価） ──
+          var pat;
+
+          if (s.ac >= 13 && s.cp >= 12) {
+            // 萎縮＋内なる反発：外では従うが内側にモヤモヤが溜まる
+            pat = {
+              profile: '【表では従う・内では溜め込むタイプ】先輩に合わせながらも、内心では「それって違うのでは？」という気持ちを抱えやすいタイプです。表面の従順さと内側のフラストレーションの差が大きくなると、ある日突然爆発したり、急に無気力になるリスクがあります。「小出しに伝える」技術が鍵です。',
+              tips: [
+                '違和感を感じたら「1週間後も同じことが気になるか」を確認する。そうなら「少し聞いてもいいですか？」と場を設けて伝える。溜めて爆発するより小出しが関係を守る',
+                '先輩の指示を受けたとき「〇〇という理解で進めていいですか？」と確認を取る習慣をつける。疑問を飲み込まず、確認形に変換することで自分の意見も自然に出せる',
+                '週に一度「今週モヤモヤしたこと」を紙に書き出す。書くだけで頭が整理され、誰に・何を・どう伝えるかが見えてくる'
+              ]
+            };
+          } else if (s.ac >= 13 && s.fc >= 12) {
+            // 萎縮＋感情豊か：普段は合わせるが感情が爆発しやすい
+            pat = {
+              profile: '【普段は合わせるが感情が爆発しやすいタイプ】日頃は先輩に気を使って合わせているぶん、ストレスが溜まると感情が一気に表に出てしまうことがあります。「我慢→爆発」のサイクルを「小出しに表現する」に変えることが、先輩との信頼を長続きさせる鍵です。',
+              tips: [
+                '毎日終業前に「今日の感情」を一言だけ書き出す（しんどい・嬉しい・モヤモヤ）。感情を溜めないことが爆発を防ぐ最初のステップ',
+                'フィードバックをもらったとき、感情的になりそうな場合は「少し考えてから返事してもいいですか？」と一言伝えてその場を切り抜ける。翌日落ち着いて返す',
+                '信頼できる先輩・同期に「最近どう？」と話す機会を週1回作る。感情の出口を確保しておくと、思わぬタイミングでの爆発が減る'
+              ]
+            };
+          } else if (s.ac >= 13) {
+            // 純粋な萎縮型
+            pat = {
+              profile: '【気を使いすぎ・我慢タイプ】先輩や上司の顔色をうかがいすぎて、疑問や不満を飲み込んでしまいがちです。「聞いたら迷惑かな」は思い込みです。質問・確認は若手の特権であり、積極的に動く姿勢がむしろ評価されます。',
+              tips: [
+                '報告・連絡は「完璧にまとめてから」より「進捗を途中でも共有する」を優先する。「まだ途中ですが…」の一言が信頼を作る',
+                '疑問は「こういう理解で合っていますか？」と確認形にして伝える。「聞く=頼る」ではなく「聞く=仕事を前に進める」と捉え直す',
+                '1週間に1回、先輩に「最近こんなことを考えています」と自分から話しかける練習をする。会話の回数が増えるほど「聞きやすい関係」になっていく'
+              ]
+            };
+          } else if (s.cp >= 13 && s.fc >= 12) {
+            // 反発＋感情先行：衝突が起きやすい最も危険なパターン
+            pat = {
+              profile: '【主張×感情が強い・衝突リスクタイプ】自分の意見が強く、さらに感情も表に出やすいため、先輩との意見の違いが「対立」になりやすいパターンです。この組み合わせのエネルギーは本来とても強い武器ですが、出し方を工夫しないと「扱いにくい若手」と誤解されるリスクがあります。',
+              tips: [
+                '先輩の話を最後まで聞いてから自分の意見を言う「聴いてから話す」ルールを自分に課す。途中で被せると、内容より「割り込んだ印象」が残る',
+                '意見を言うときは「私はこう感じたのですが、どうですか？」と感情＋問いかけ形にする。断言ではなく対話に変えるだけで受け取られ方が大きく変わる',
+                '感情が高ぶったと気づいたら「少し考えます」と言ってその場を離れる。冷静になってから伝えた意見のほうが必ず正確に届く'
+              ]
+            };
+          } else if (s.cp >= 13) {
+            // 純粋な反発型
+            pat = {
+              profile: '【主張が強い・反発しやすいタイプ】自分の意見や「こうあるべき」という感覚が強く、先輩の指示に疑問を感じたとき、反発やモヤモヤが表に出やすいです。意見を持つこと自体は強みですが、「伝え方」と「タイミング」が関係の質を左右します。',
+              tips: [
+                '指示を受けたとき、まず「わかりました」と動き出す。疑問は行動後か1on1の場で「確認してもいいですか？」と伝える',
+                'フィードバックをもらったとき「でも…」より先に「そういう見方があるんですね」と一言受け止める。反論は2日後でも遅くない',
+                '自分の意見を伝えるときは「私はこう思うのですが、どうでしょうか？」と問いかけ形にする。主張ではなく対話にするだけで先輩の受け取り方が変わる'
+              ]
+            };
+          } else if (s.fc >= 13 && s.a <= 7) {
+            // 感情先行＋論理が弱い：空回りしやすい
+            pat = {
+              profile: '【感情先行・空回りしやすいタイプ】明るさと素直さは大きな武器ですが、思ったことをそのまま口に出したり、相手の状況を読まずに動いてしまうことがあります。「タイミング」と「順序」を少し意識するだけで、先輩からの信頼が大きく変わります。',
+              tips: [
+                '話しかける前に「今少しよろしいですか？」の一言を必ず添える。先輩が忙しいかどうかを読む「間」を作る習慣が印象を変える',
+                '報告・連絡は「結論→理由→状況・感情」の順で話す。先に経緯や気持ちを話すより、結論から入ると話が格段に伝わりやすくなる',
+                'フィードバックをもらったとき、感情的に返事せず「ありがとうございます、試してみます」と落ち着いて受け取り、後から「やってみました！」と報告する。このセットが信頼を作る'
+              ]
+            };
+          } else if (s.a >= 13 && s.np <= 7) {
+            // 論理先行＋温かみが薄い：関係が冷えやすい
+            pat = {
+              profile: '【論理先行・関係が冷えやすいタイプ】物事を整理して考える力は大きな強みですが、先輩との関係で「効率・正確さ」を優先しすぎると、雑談や感情的なやりとりを避けがちになります。職場の信頼は「正しさ」より「関係の温度」で決まることが多いです。',
+              tips: [
+                '報告・連絡に「今、自分はどう感じているか」を一言添える習慣をつける。「問題なく進んでいます」より「達成感があります」のほうが関係が近くなる',
+                '毎朝・終業時に先輩へ一言声をかける。業務連絡でなくてよい。「お疲れ様です」の積み重ねが、いざというときに話しかけやすい関係を作る',
+                'フィードバックをもらったとき、理屈より先に「ありがとうございます」と受け取る。論点の整理は心の中でしておき、必要なら後日「確認してもいいですか？」と場を設ける'
+              ]
+            };
+          } else if (s.np >= 13) {
+            // 協調型：自分の意見を出す練習が必要
+            pat = {
+              profile: '【協調的・気配りタイプ】先輩の役に立ちたい気持ちが強く、協力的な姿勢は高く評価されます。ただし、「合わせすぎ」になると自分の意見や疑問を後回しにしてしまいがちです。気配りを続けながら、自分の考えを少しずつ出す練習が次のステップです。',
+              tips: [
+                '報告・連絡のときに「私はこう進めようと思っています」と自分の考えを一言添える。確認を求める形でOK。自分の意見を持って動く姿勢が信頼につながる',
+                'フィードバックをもらったとき「ありがとうございます」で受け取り、実践後に「やってみたら〇〇でした」と自分の言葉で返す。感想を添えると対話が生まれる',
+                '疑問や違和感を感じたとき「そういうものかな」で流さず「なぜそうするのか、聞いてもいいですか？」と尋ねる習慣をつける'
+              ]
+            };
+          } else {
+            // バランス型
+            pat = {
+              profile: '【バランス型】特定のスコアに極端な偏りがなく、状況に応じて柔軟に対応できるタイプです。先輩・上司との関係では基本的な姿勢を丁寧に実践することが、着実な信頼構築につながります。',
+              tips: [
+                '報告・連絡・相談は「困ってから」より「困る前」に。進捗の途中報告を習慣にすると、先輩が安心してあなたに仕事を任せるようになる',
+                'フィードバックをもらったとき「ありがとうございます」で受け取り、すぐに実践して「やってみました」と返す。このサイクルが最速の成長ルート',
+                '「どうすれば良かったですか？」と聞く習慣が成長を加速させる。先輩の経験を借りることを遠慮しない'
+              ]
+            };
+          }
+
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){
+              return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>';
+            }).join('') + '</div>';
+
+          return pat.profile + tipsHtml;
+        }
+      },
+      motivation: {
+        title: '自分のモチベーションの源泉を知る',
+        fn: function(L, T, s) {
+          var fc_mot = s.fc >= 12 ? '「楽しい・面白い」と感じるときにエネルギーが出るタイプです。今の仕事の中で「自分が面白いと思える要素」を一つ見つけることがモチベーション維持の鍵です。'
+                     : s.fc <= 6  ? '派手な刺激より「着実にできることが増える」実感がモチベーションになりやすいです。毎日の小さな「できた」を記録してみましょう。'
+                                  : '状況に応じてモチベーションを保てるバランス型です。';
+          var np_mot = s.np >= 12 ? '「誰かの役に立てた」という実感が大きなエネルギーになります。先輩を手伝う・困っている同期をサポートするなど、貢献できる場面を意識的に探してみましょう。' : '';
+          var a_mot  = s.a  >= 12 ? '「なぜこの仕事があるのか」「どういう仕組みで動いているのか」という理解があると動きやすいタイプです。わからないことは積極的に聞いて、仕事の全体像を早めに把握しましょう。' : '';
+
+          var tips;
+          if (s.fc >= 12 && s.np >= 12) {
+            tips = [
+              '「楽しかった」「役に立てた」の両方を感じた瞬間を週1つ記録する。どちらが欠けてきたかを意識的に確認する',
+              '単調な期間が続くときは後輩・同期へのサポートで「貢献感」を補充する。楽しさと貢献感は連動してモチベーションを支える',
+              'FCとNPの両方が下がったと感じたら早めに信頼できる先輩に話す。若手のうちの疲弊は見えにくいため、発信することが重要'
+            ];
+          } else if (s.fc >= 12 && s.a >= 12) {
+            tips = [
+              '今の業務が「誰の役に立っているか・どこにつながっているか」を定期的に確認する。意義が腹落ちするとエネルギーが持続しやすい',
+              '「なぜこれをやるのか」が見えなくなったら積極的に先輩に聞く。理解が深まるとFCも回復しやすい',
+              '今週「一番面白いと感じた部分」と「一番理解が深まった部分」を一つずつ書き出す'
+            ];
+          } else if (s.fc >= 12) {
+            tips = [
+              '今の業務の中で「一番面白いと感じる部分」を書き出す。その要素を意識的に増やせないか考える',
+              '単調な期間が続くときは「この業務に自分流の工夫を加えるとしたら何か」を考える。小さな創意工夫がモチベーションを維持する',
+              '「次に挑戦したいこと」を常に1つ持っておく習慣を作る。好奇心のアンテナを立てておくことがエネルギーを絶やさない'
+            ];
+          } else if (s.fc <= 6 && s.a >= 12) {
+            tips = [
+              '毎朝「今日達成できること」を1〜3つ書き、なぜそれが重要かを一言添えてから仕事を始める',
+              '業務の全体像を把握するために「この仕事の先はどうなっているか」を上司や先輩に確認する習慣を持つ',
+              '今週の「できた」と「わかった」を一つずつ記録する。着実な積み重ねが最もモチベーションを維持しやすい'
+            ];
+          } else if (s.fc <= 6) {
+            tips = [
+              '毎朝「今日達成できること」を1〜3つ書いてから仕事を始める。小さなゴールの積み重ねが着実な前進感を生む',
+              '自分がうまくできていることを月1回リストアップする。「できた」の積み重ねを見えるようにすることがやる気の基盤になる',
+              '大きな変化より「今日1つだけ改善できること」を探す習慣を持つ'
+            ];
+          } else if (s.np >= 12 && s.a >= 12) {
+            tips = [
+              '今週「誰かの役に立てた場面」を1つ書き留める。貢献の積み重ねが継続力になる',
+              '仕事の「なぜ」を理解した上で動くと貢献の実感が増す。業務の目的を確認してから取り組む習慣を持つ',
+              '「役に立てた」という実感が薄れてきたときは自分自身が消耗しているサインかもしれない。まず自分の回復を優先する'
+            ];
+          } else if (s.np >= 12) {
+            tips = [
+              '今週「誰かの役に立てた場面」を1つ書き留める。小さな貢献を見えるようにすることが継続の力になる',
+              '先輩を手伝う・困っている同期をサポートするなど、貢献できる場面を意識的に探してみる',
+              '「役に立ちたい」という気持ちが薄れてきたときは自分が消耗しているサインかもしれない。まず自分への回復を優先する'
+            ];
+          } else if (s.a >= 12) {
+            tips = [
+              '業務の全体像を把握するために「上流と下流で何が起きているか」を先輩や関係者に確認する習慣を持つ',
+              '自分の業務が「どのようにチームや会社に貢献しているか」を一文で言語化してみる。意義が明確になると動きやすくなる',
+              '「この仕事を通じて3ヶ月後にどんな力をつけたいか」を書いてみる。成長の方向性が見えると意欲が持続しやすい'
+            ];
+          } else {
+            tips = [
+              '「最近うまくいったこと」を3つ書き出す。できたことを見ることで気持ちが整理される',
+              '信頼できる先輩に「最近こんなことを考えています」と話す機会を週1回作る',
+              '今週中に達成できる「小さな目標」を一つ設定する。達成感の積み重ねが意欲の基盤を作る'
+            ];
+          }
+          var tipsHtml = '<div class="action-list">' +
+            tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return fc_mot + ' ' + np_mot + ' ' + a_mot + tipsHtml;
+        }
+      },
+      growth: {
+        title: '自己成長の加速に向けて',
+        fn: function(L, T, s) {
+          var lowest = L.lowest;
+          var lowestTip = {
+            'CP': 'CPが低め：「これはおかしい」と感じたことを、適切な場で発言する練習をしてみましょう。自分の基準を持つことがプロとしての成長につながります。',
+            'NP': 'NPが低め：周囲への関心を少し意識的に広げてみましょう。「困っている人に気づいて声をかける」小さな行動が、職場での信頼を作ります。',
+            'A':  'Aが低め：「なぜそうなるか」を考える習慣を持ちましょう。業務日誌や振り返りメモを書くことで、経験が知識に変わります。',
+            'FC': 'FCが低め：楽しさや好奇心を大切にしましょう。若手のうちに「面白そう」と思ったことに飛び込む経験が、長期的なキャリアの資産になります。',
+            'AC': 'ACが低め：「周囲の期待を読む」感度を少し上げてみましょう。先輩の言葉の背景にある意図を考えることが、職場での立ち回りを上手にします。'
+          }[lowest] || '';
+          var growth_base = T.growth;
+          var tipsByLowest = {
+            'CP': [
+              '「これはおかしい」と思ったことを、その日のうちに事実として箇条書きでメモする。感情ではなく状況を記録する習慣が「自分の基準」を育てる。',
+              '会議や打ち合わせで「自分はこう思う」を一言だけ言う練習を週1回取り入れる。小さな発言の積み重ねが、自分の立場を持つ力になる。',
+              '尊敬できる先輩の判断を観察し、「なぜそう決めたのか」を直接聞いてみる。他者の基準を学ぶことで、自分の判断軸が磨かれる。'
+            ],
+            'NP': [
+              '朝、職場に着いたとき「しんどそうな人がいないか」を1秒確認してから仕事を始める習慣をつける。気づく力が、信頼される力になる。',
+              'チームメンバーへの「ありがとう」「助かった」を、具体的な行動と結びつけて伝える（「あの資料、すごく助かった」など）。',
+              '後輩や同期が困っていると感じたとき、「何か手伝えることある？」と声をかける機会を週1回意識的に作る。'
+            ],
+            'A': [
+              '業務終了後2分間、「今日の出来事→なぜそうなったか→次はどうするか」を箇条書きでメモする。経験が知識に変わる最短ルート。',
+              '「なぜ？」を3回繰り返す習慣（なぜ失敗した？→なぜそうなった？→なぜそれが起きた？）を、週1回の振り返りに取り入れる。',
+              '先輩に質問するとき「自分の考えをまず伝えてから聞く」スタイルに切り替える。自分の仮説を持つことで、論理力が格段に上がる。'
+            ],
+            'FC': [
+              '「面白そう」と感じたことを、一度だけ断らずに試してみる月を設ける。若手のうちの「とりあえずやる」経験が、長期的な好奇心の源泉になる。',
+              '仕事以外で最後に「楽しかった」と感じた経験を思い出し、それに近い要素を仕事の中に一つ持ち込む工夫をしてみる。',
+              '「今日、一番印象に残ったこと・驚いたこと」を夜に一言だけ書き留める習慣をつける。小さな感動を積み重ねることで、好奇心が戻ってくる。'
+            ],
+            'AC': [
+              '先輩・上司から指示を受けたとき、「その背景にある意図は何だろう？」と一度立ち止まって考える。文脈を読む力が、職場での立ち回りを変える。',
+              'フィードバックをもらったとき、すぐ反応せずに「どういう意味で言っているのか確認してもいいですか？」と一言入れる習慣をつける。',
+              '職場の「暗黙のルール・期待」に気づいたことをリスト化し、意識的に実践してみる。周囲の期待を知ることが、信頼構築の第一歩になる。'
+            ]
+          };
+          var tips = tipsByLowest[lowest] || [
+            '毎日1分「今日学んだこと」を書く',
+            '月に一度、信頼できる人に「自分の弱みを教えてください」と聞く',
+            '読んだ・聞いた内容を誰かに話してみる（アウトプットが定着を生む）'
+          ];
+          var tipsHtml = '<div class="action-list">' +
+            tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return growth_base + ' ' + lowestTip + tipsHtml;
+        }
+      },
+      resilience: {
+        title: 'レジリエンスを高めるヒント',
+        fn: function(L, T, s) {
+
+          // ===== 折れやすいポイント：複合スコアで13パターン =====
+          var weak;
+          if      (s.ac >= 14 && s.cp >= 13) weak = {
+            label: '我慢×内なる反発型',
+            text: '外では従いながら、内心に「なぜ？」「おかしい」という気持ちが積み重なるパターンです。表面の従順さと内側のフラストレーションの差が大きくなるほど、ある日突然プツンと糸が切れます。自分では「我慢していた」と気づかないまま限界に達するため、感情の棚卸しを「習慣」にすることが最大の予防策です。',
+            hint1: '毎週金曜に「今週モヤモヤしたこと」を1つだけ書き出す。書いて眺めるだけで、頭の圧力が下がる',
+            hint2: '「ちょっと言いにくいのですが…」という前置きを使う練習をする。小出しに伝えることで、爆発を防げる',
+            hint3: '信頼できる人に「最近どう？」と聞かれたとき「まあまあです」で終わらず、一言本音を混ぜてみる'
+          };
+          else if (s.ac >= 14 && s.fc >= 13) weak = {
+            label: '我慢×感情爆発型',
+            text: '普段は先輩や周囲に合わせているぶん、ストレスが溜まると感情が一気に表に出てしまいます。爆発後に「やってしまった」と自己嫌悪に陥るサイクルが続くと、自己肯定感が削られていきます。感情の出口を「溜まってから」ではなく「溜まる前」に設けることが、このパターンを変える鍵です。',
+            hint1: '「感情の温度計」を毎日つける：今日の感情を10段階で数字1つだけメモする。7を超えた日が3日続いたら必ず誰かに話す',
+            hint2: '感情が高ぶったと気づいたら「少し考えます」と言ってその場を10分離れる。冷静になってから戻ると、言葉が変わる',
+            hint3: '怒り・悲しみ・不安を感じたとき「この感情は何を守ろうとしているか？」と問いかける。感情の意味を理解すると自己嫌悪が減る'
+          };
+          else if (s.ac >= 14 && s.np >= 13) weak = {
+            label: '世話好き×自己犠牲型',
+            text: '人の役に立ちたい気持ちと、相手に合わせる傾向が重なり、「断れない・頼めない・限界まで引き受ける」パターンに陥りやすいです。周囲からは頼られて嬉しい反面、自分のリソースが静かに枯渇していきます。「自分を守ることが、周囲を守ること」という視点の転換がレジリエンスを高めます。',
+            hint1: '今週1回だけ「今は難しいです」と断る練習をする。断っても関係は壊れない、という体験を積み重ねることが大切',
+            hint2: '「してあげたこと日記」ではなく「してもらったこと日記」をつける。もらっている感謝に気づくことがエネルギーの補充になる',
+            hint3: '疲れたと感じたとき「誰かに頼る」を意識的に選ぶ。頼ることは弱さではなく、関係を深めるきっかけになる'
+          };
+          else if (s.ac >= 14) weak = {
+            label: '静かな我慢型',
+            text: 'ストレスを外に出さないため、周囲が気づかないまま疲弊が積み重なります。「まだ大丈夫」が口癖になりやすく、実際に限界を超えてから初めて自覚するケースが多いです。「早めに気づく」センサーを持つことと、「小さく吐き出す」出口を作ることが最重要です。',
+            hint1: '毎週「今の我慢レベル」を10段階で確認する。7点以上なら、翌週中に必ず誰かに話す機会を作る',
+            hint2: '「聞いてほしいことがあって」という言葉を週1回使う練習をする。解決策は不要。聞いてもらうだけで回復できる',
+            hint3: '自分の「疲れのサイン」を3つ書き出しておく（食欲・睡眠・口数など）。サインに気づいたらセルフケアを優先する'
+          };
+          else if (s.cp >= 14 && s.fc >= 13) weak = {
+            label: '理想×情熱の燃え尽き型',
+            text: '「こうあるべき」という強い信念と、情熱的に動くエネルギーが組み合わさると、全力で突っ走った末に燃え尽きるパターンが出やすいです。理想が現実に阻まれたとき、怒りや無力感が一気に押し寄せます。「8割の力で7割の成果」を繰り返すほうが、長期的には大きな成果を生みます。',
+            hint1: '「今週の自分の力の使い方」を振り返り、8割超えで動いていたら翌週に必ず「手を抜く場面」を一つ設計する',
+            hint2: '理想と現実のギャップを感じたとき「今自分が変えられること」と「今は変えられないこと」を紙に分けて書く',
+            hint3: '情熱が落ちた日を「充電期間」と再定義する。エネルギーには波があることを前提に、低い日のルーティンを持っておく'
+          };
+          else if (s.cp >= 14 && s.a >= 13) weak = {
+            label: '完璧主義×孤高型',
+            text: '高い基準と論理的な判断力が組み合わさると、「自分がやらなければ」「他の人では不十分」という感覚に陥りやすく、孤独に抱え込んで消耗するパターンです。正しい判断をするほど、周囲との距離が開きます。「完璧な一人」より「不完全なチーム」のほうが折れにくいことを、頭だけでなく体験で学ぶことが大切です。',
+            hint1: '今週、誰かに仕事を一つ任せてみる。完璧でなくてもいい。「任せた体験」がレジリエンスを育てる',
+            hint2: '失敗したとき「自分は何がダメだったか」ではなく「何を学んだか・次は何をするか」を問い直す癖をつける',
+            hint3: '週1回、意図的に「雑談だけの時間」を作る。成果と関係ない会話が、精神的な余白を生む'
+          };
+          else if (s.cp >= 14) weak = {
+            label: '基準高め・フラストレーション型',
+            text: '「こうあるべき」という基準が高いため、現実や周囲が期待通りでないときに強いフラストレーションを感じます。正しさへのこだわりは強みである一方、それが満たされないときのエネルギー消費が大きいです。「正しいかどうか」より「今の自分にできるベスト」にフォーカスを移すことがレジリエンスを高めます。',
+            hint1: '怒りやフラストレーションを感じたとき「なぜ自分はこれを重要視しているか」を30秒で書く。感情の根っこを理解すると、流し方が変わる',
+            hint2: '「80点合格ルール」を意識的に使う。完璧な準備より、80点の行動を素早く繰り返す練習が回復力を育てる',
+            hint3: '週末に「今週うまくいったこと」を3つ書く。できなかったことより、できたことを見る習慣が自己肯定感を守る'
+          };
+          else if (s.fc >= 14 && s.a <= 7) weak = {
+            label: '感情波・衝動型',
+            text: 'テンションが高いときと低いときの落差が大きく、低いときに「自分はダメだ」「向いていない」と強く感じやすいパターンです。気分が落ちたとき、衝動的な決断（辞める・やめる・離れる）をしやすいため、「低い日は決断しない」というルールが自分を守ります。感情の浮き沈みは才能の裏返しです。',
+            hint1: '気分が落ちた日は「今日は低エネルギーデー」と宣言して、大きな決断を翌日以降に持ち越す。感情の低い日に決めると後悔しやすい',
+            hint2: '「元気リスト」を作る：自分が確実に回復できる音楽・場所・食べ物・行動を5つ書いておく。落ちたときに考える余力はないので、事前に用意しておく',
+            hint3: '感情のアップダウンをグラフで記録してみる。波のパターンがわかると「また来た」と客観視でき、飲み込まれにくくなる'
+          };
+          else if (s.fc >= 14 && s.np >= 13) weak = {
+            label: '明るさ×気疲れ型',
+            text: '場を明るくしようとするエネルギーと、人の役に立ちたい気持ちが重なり、「ずっと元気でいなきゃ」というプレッシャーを感じやすいパターンです。「元気な自分」を演じることに疲れ、急に電池が切れるように落ち込むことがあります。「元気じゃない日があっていい」という自己許可が、長期的な活力を守ります。',
+            hint1: '信頼できる人の前で「実は今日ちょっと疲れてて」と正直に言う練習をする。弱さを見せることが関係を深め、孤独感を減らす',
+            hint2: '「オンとオフのスイッチ」を作る：帰宅後の30分は「何も頑張らない時間」として設計する。回復のための意図的な無気力タイムを持つ',
+            hint3: '自分のエネルギー源を書き出す：「これをするとなぜか元気になる」を3つ特定して、定期的に補充する習慣を作る'
+          };
+          else if (s.a >= 14 && s.np <= 7) weak = {
+            label: '論理孤立型',
+            text: '物事を整理・分析する力が高い一方、感情的なつながりやケアを後回しにしがちです。問題を一人で解決しようとして、気づけば孤独に消耗しているパターンです。「正しく解決する」より「誰かに話す」が、このタイプのレジリエンスを最も早く回復させる方法です。',
+            hint1: '困ったとき「自分で解決する」より先に「まず誰かに話す」を意識的に選ぶ。話すこと自体が思考を整理し、解決策も見えやすくなる',
+            hint2: '週1回、仕事と関係ない雑談を誰かとする時間を作る。雑談は「無駄な時間」ではなく、精神的な免疫力を高める投資',
+            hint3: '落ち込んだとき「何が間違いだったか」より「自分は何を守ろうとしたか」を問いかける。自己批判より自己理解がレジリエンスを育てる'
+          };
+          else if (s.a >= 14 && s.fc <= 7) weak = {
+            label: '冷静・感情抑圧型',
+            text: '論理的に物事を処理できる反面、感情を「不要なもの」として切り捨てがちです。感情は情報です。切り捨てるほど、自分の状態を正確に把握できなくなり、気づかないうちに消耗します。感情を「感じる練習」をすることが、このタイプのレジリエンスを高める最短ルートです。',
+            hint1: '毎日1回「今の感情を一言で表すと？」と自問する。答えは何でもいい。感情に名前をつける習慣が、自己認識を高める',
+            hint2: '何かが「うまくいったとき」に「よかった」と声に出す練習をする。感情を言語化することが、内面のセンサーを育てる',
+            hint3: '信頼できる人に「これを読んでどう感じた？」と感情の視点で話してもらう体験を意図的に作る。他者の感情表現を聴くことが刺激になる'
+          };
+          else if (s.np >= 14 && s.ac >= 12) weak = {
+            label: '献身×自己消去型',
+            text: '人を助け、場を和ませることにエネルギーを注ぐ一方、自分のニーズを後回しにするパターンです。「自分は後でいい」が積み重なると、「自分が何をしたいか」すらわからなくなります。自分の感情・欲求に気づき、表現する練習がレジリエンスの核になります。',
+            hint1: '今週「自分がしたいこと」を1つだけ選んで、誰の許可も得ずにやってみる。小さな自己主張の体験を積み重ねる',
+            hint2: '毎朝「今日の自分が一番大切にしたいことは何か」を一文書く。他者ではなく自分を主語にする習慣が自己軸を育てる',
+            hint3: '「ありがとう」と言われたとき「いえいえ」で返すのをやめ「嬉しいです」と受け取る練習をする。貢献の実感が自己効力感を高める'
+          };
+          else weak = {
+            label: 'バランス維持型',
+            text: '特定のスコアに極端な偏りがないため、一つの刺激で大きく崩れるリスクは低いです。ただし、バランスが取れているぶん「自分はどこで折れやすいか」が見えにくく、静かに疲弊が積み重なる場合があります。定期的な自己点検を習慣にすることが、このタイプの最大の予防策です。',
+            hint1: '月1回「今の自分の状態チェック」をする：睡眠・食欲・気力・集中力・人間関係の5項目を10点満点で採点する。7点以下の項目があれば対処する',
+            hint2: '「普通です」「まあまあです」で済ませず、週1回は「今週よかったこと」と「今週しんどかったこと」を1つずつ誰かに話す',
+            hint3: '自分の「回復法」を意識化する：何をすると元気が回復するか、今の自分に合った方法を3つ特定して、疲れる前に実行する習慣を持つ'
+          };
+
+          // ===== 立て直しスタイル：複合スコアで10パターン =====
+          var recovery;
+          if      (s.np >= 13 && s.fc >= 13) recovery = {
+            label: 'つながり＋行動で回復',
+            text: '誰かと一緒にいること、笑える場所に身を置くことで自然とエネルギーが戻るタイプです。一人で考え込む時間が長くなると逆効果。「まず誰かに連絡する」「一緒に何かをする」が最速の回復行動です。',
+            action: '落ち込んだとき最初にすること：①友人・信頼できる先輩に連絡する ②外に出て体を動かす ③好きな場所・好きな人と食事をする'
+          };
+          else if (s.np >= 13 && s.ac >= 13) recovery = {
+            label: 'つながり（対話）で回復',
+            text: '話すこと・聴いてもらうことで感情が整理され、気力が回復するタイプです。ただし、我慢を溜めてから話すと一気に感情が出すぎることがあります。「困ってから話す」ではなく「定期的に話す」習慣を作ることが安定の鍵です。',
+            action: '落ち込んだとき最初にすること：①「実は…」と話せる人に連絡する ②週1回の「話す時間」を予め予約しておく ③感情を言語化してから話す（日記→対話の順）'
+          };
+          else if (s.np >= 13) recovery = {
+            label: 'つながりで回復',
+            text: '誰かと話す・一緒にいるだけで自然と気力が戻るタイプです。一人で抱え込むほど回復が遅くなります。「解決策を話す」より「ただ聴いてもらう」だけで大きく違います。',
+            action: '落ち込んだとき最初にすること：①信頼できる人に「少し話聴いてもらえる？」と連絡する ②カフェや公園など「人の気配がある場所」に行く ③ペットや植物など、ゆるいつながりも回復に使う'
+          };
+          else if (s.a >= 13 && s.cp >= 13) recovery = {
+            label: '整理＋行動計画で回復',
+            text: '「何が起きたか・なぜそうなったか・次はどうするか」を論理的に整理し、具体的な行動計画を立てることで回復するタイプです。ただし、整理しすぎて行動が遅れるリスクがあります。「60点の計画で動く」を意識すると回復が加速します。',
+            action: '落ち込んだとき最初にすること：①紙に「事実・感情・次の行動」の3つを書き出す ②翌日できる最小の行動を1つだけ決める ③完璧な計画を待たず、まず動く'
+          };
+          else if (s.a >= 13 && s.fc <= 7) recovery = {
+            label: '整理＋感情解放で回復',
+            text: '頭で整理することで落ち着けますが、感情を処理しないままだと根本的な回復につながりにくいです。「なぜそう感じたか」まで掘り下げることが、このタイプの完全回復のカギです。',
+            action: '落ち込んだとき最初にすること：①事実と感情を別々に書き出す ②「この感情は何を教えているか」を問いかける ③意図的に「感情を出す時間（音楽・映画・運動）」を作る'
+          };
+          else if (s.a >= 13) recovery = {
+            label: '整理・分析で回復',
+            text: '「何が起きたか・なぜそうなったか・次はどうするか」を書き出すことで頭が整理され、気力が戻るタイプです。ノートやメモが最強のリカバリーツールです。',
+            action: '落ち込んだとき最初にすること：①紙に「起きたこと」「感じたこと」「学んだこと」を箇条書きにする ②問題を「自分で変えられる/変えられない」に分類する ③「変えられること」に一つだけ集中する'
+          };
+          else if (s.fc >= 13 && s.cp >= 13) recovery = {
+            label: '行動＋発散で回復',
+            text: '体を動かす・好きなことをする・思いきり発散することで急速にエネルギーが回復するタイプです。じっとしているほど落ち込みが深まります。ただし、衝動的な行動（投げ出す・爆発する）は後悔につながるため、「発散の方法」を事前に選んでおくことが重要です。',
+            action: '落ち込んだとき最初にすること：①体を動かす（散歩・運動・掃除でもOK） ②「安全な発散リスト」から選ぶ（怒鳴る・暴飲暴食は除外） ③発散後に「次にできる小さな一歩」を1つ決める'
+          };
+          else if (s.fc >= 13) recovery = {
+            label: '行動・発散で回復',
+            text: 'じっと考えるより、好きなことをする・外に出る・体を動かすことで自然とエネルギーが戻るタイプです。「元気リスト（音楽・場所・食べ物・行動）」を手元に置いておくと、落ち込んだときにすぐ使えます。',
+            action: '落ち込んだとき最初にすること：①元気リストからすぐ実行できるものを選ぶ ②外に出て場所を変える ③「今日1つだけ終わらせる」小さな行動で達成感を作る'
+          };
+          else if (s.ac >= 13) recovery = {
+            label: 'ゆっくり解放で回復',
+            text: '感情を溜め込みやすいため、「一気に回復」より「じわじわと解放する」プロセスが向いています。急いで立ち直ろうとするより、段階的に感情を外に出す方法が安定した回復につながります。',
+            action: '落ち込んだとき最初にすること：①一人でいい、声に出して「しんどい」と言う ②信頼できる人に「話せる？」と連絡する ③解決策より「ただ聴いてもらう」を求める'
+          };
+          else recovery = {
+            label: 'ルーティン＋休息で回復',
+            text: '睡眠・食事・適度な運動など「生活の基盤」を整えることが、最も安定した回復法です。乱れたリズムを整えることを最初の一手にしましょう。特定の「決まった回復行動」を持つと、落ちたときの迷いがなくなります。',
+            action: '落ち込んだとき最初にすること：①早めに寝る（回復の8割は睡眠） ②「いつものルーティン」を一つ実行する ③回復しきる前に動こうとしない'
+          };
+
+          // ===== 共通＋スコア別ヒント =====
+          var hints = [];
+          // 折れやすいポイントに応じたヒント（必ず1つ）
+          hints.push(weak.hint1);
+          hints.push(weak.hint2);
+          hints.push(weak.hint3);
+          // 立て直しスタイルに応じた行動
+          hints.push(recovery.action);
+
+          var weakBox = '<div class="note-box neutral" style="margin-top:10px"><strong>あなたの折れやすいポイント：' + weak.label + '</strong><br>' + weak.text + '</div>';
+          var recoveryBox = '<div class="note-box positive" style="margin-top:8px"><strong>あなたの立て直しスタイル：' + recovery.label + '</strong><br>' + recovery.text + '</div>';
+
+          var hintsHtml = '<div class="action-list" style="margin-top:10px">' +
+            hints.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') +
+            '</div>';
+
+          return 'レジリエンス（回復力）とは、困難に直面したとき、しなやかに立ち直る力のことです。あなたのエゴグラムパターンから「折れやすいポイント」と「立て直しのスタイル」を見ていきましょう。' +
+            weakBox + recoveryBox + hintsHtml;
+        }
+      }
+    }
+  }
+};
+
+function buildRoleSection(role, L, T, s) {
+  var R = ROLE_ANALYSIS[role];
+  if (!R) return '';
+  var html = '';
+
+  // 役職セクションヘッダー（全幅）
+  html += '<div class="report-section role-header-section">';
+  html += '<div class="section-header" style="background:'+R.bgColor+'">';
+  html += '<div style="background:'+R.bgColor+';color:'+R.color+';border:1px solid '+R.color+'44;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;white-space:nowrap">'+R.label+'向け分析</div>';
+  html += '<div class="section-title-text" style="color:'+R.color+'">役職別インサイト</div>';
+  html += '</div>';
+  html += '<div class="section-content"><p style="color:var(--mid)">'+R.intro+'</p></div>';
+  html += '</div>';
+
+  // 各テーマセクション（#role-body の2列グリッドに流し込む）
+  var secs = R.sections;
+  Object.keys(secs).forEach(function(key) {
+    var sec = secs[key];
+    var body = sec.fn(L, T, s);
+    html += '<div class="report-section role-theme-section">';
+    html += '<div class="section-header" style="background:'+R.bgColor+'">';
+    html += '<div class="section-num" style="background:'+R.color+'">★</div>';
+    html += '<div class="section-title-text" style="color:'+R.color+'">'+sec.title+'</div>';
+    html += '</div>';
+    html += '<div class="section-content"><p>'+body+'</p></div>';
+    html += '</div>';
+  });
+
+  return html;
+}
+
+
+function doPrint() {
+  var reportEl = document.getElementById('report-doc');
+  if (!reportEl) { window.print(); return; }
+
+  // canvasをPNG画像に差し替えたクローンを作成
+  var clone = reportEl.cloneNode(true);
+  var origCanvases = reportEl.querySelectorAll('canvas');
+  var cloneCanvases = clone.querySelectorAll('canvas');
+  origCanvases.forEach(function(orig, i) {
+    if (!cloneCanvases[i]) return;
+    try {
+      var img = document.createElement('img');
+      img.src = orig.toDataURL('image/png');
+      img.id = orig.id;
+      img.className = orig.className;
+      img.style.display = 'block';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      cloneCanvases[i].parentNode.replaceChild(img, cloneCanvases[i]);
+    } catch(e) {}
+  });
+
+  // スタイルとフォントリンクを収集
+  var styles = '';
+  document.querySelectorAll('style').forEach(function(s){ styles += s.textContent + '\n'; });
+  var links = '';
+  document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l){ links += l.outerHTML; });
+
+  // 毎回新しいiframeを生成（新documentなのでSafariが初回印刷として扱う）
+  var old = document.getElementById('_pf');
+  if (old) old.parentNode.removeChild(old);
+  var frame = document.createElement('iframe');
+  frame.id = '_pf';
+  frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;pointer-events:none';
+  document.body.appendChild(frame);
+
+  var iWin = frame.contentWindow;
+  var iDoc = iWin.document;
+  iDoc.open();
+  iDoc.write(
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' + links +
+    '<style>' + styles +
+    'body{background:#f5f4f0}.app-wrapper{display:block!important}' +
+    '.input-panel,.action-bar{display:none!important}' +
+    '.report-panel{padding:0!important;background:#fff!important}' +
+    '#report-output{display:block!important}' +
+    '</style></head>' +
+    '<body><div class="app-wrapper"><div class="report-panel"><div id="report-output">' +
+    clone.outerHTML + '</div></div></div></body></html>'
+  );
+  iDoc.close();
+
+  var fired = false;
+  function go() {
+    if (fired) return; fired = true;
+    iWin.focus();
+    iWin.print();
+    setTimeout(function(){ var f=document.getElementById('_pf'); if(f) f.parentNode.removeChild(f); }, 3000);
+  }
+  frame.onload = go;
+  setTimeout(go, 800);
+}
+
+function generateReport(){
+  var s=getScores();
+  var name=document.getElementById('name').value.trim();
+  var date=document.getElementById('date').value;
+  var dept=document.getElementById('dept').value.trim();
+  var L=calcLogic(s);
+  var T=TYPE_MASTER[L.typeKey]||TYPE_MASTER['A-NP'];
+
+  document.getElementById('empty-state').style.display='none';
+  var out=document.getElementById('report-output');
+  out.style.display='flex'; out.style.flexDirection='column';
+
+  var role = document.getElementById('role') ? document.getElementById('role').value : '';
+  var roleBadgeHtml = role ? ' <span style="display:inline-block;background:'+(role==='管理職'?'#dce9f7':role==='若手'?'#fef6e4':'#e8f5e9')+';color:'+(role==='管理職'?'#1a3a7a':role==='若手'?'#7a4f0a':'#1a5c34')+';border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700">'+role+'</span>' : '';
+  document.getElementById('report-meta').innerHTML=
+    '<strong>'+(name||'氏名未入力')+'</strong>'+roleBadgeHtml+'<br>'+(dept?dept+'<br>':'')+(date?formatDate(date):'');
+
+  // スコアバー
+  var colors={cp:'#c0392b',np:'#2c7a50',a:'#2c5282',fc:'#b7791f',ac:'#6b46a0'};
+  var names={cp:'批判的な親',np:'養育的な親',a:'大人の心',fc:'自由な子供',ac:'順応した子供'};
+  var barHtml='';
+  ['cp','np','a','fc','ac'].forEach(function(k){
+    var v=s[k];
+    barHtml+='<div class="score-bar-item">'+
+      '<div class="score-bar-label" style="color:'+colors[k]+'">'+k.toUpperCase()+'</div>'+
+      '<div class="score-bar-track"><div class="score-bar-fill" style="width:'+(v/20*100)+'%;background:'+colors[k]+'"></div></div>'+
+      '<div class="score-bar-num" style="color:'+colors[k]+'">'+v+'</div>'+
+      '<div class="score-bar-name">'+names[k]+'</div></div>';
+  });
+  document.getElementById('score-bar').innerHTML=barHtml;
+
+  // タイプヘッダー
+  document.getElementById('type-header').innerHTML=
+    '<div class="type-badge-large">'+T.name+'</div>'+
+    '<div class="type-meta">'+
+      '<div class="type-summary-text">'+T.summary+'</div>'+
+      '<div class="type-sub">最高：'+L.rank1+'　2位：'+L.rank2+'　合計エネルギー：'+L.total+'点</div>'+
+    '</div>';
+
+  // ────── セクション文章組み立て ──────
+
+  // 0. 診断の見立て
+  var sec0 = 'あなたの最も高い自我状態は「'+L.rank1+'」、2番目は「'+L.rank2+'」です。'+
+    '刺激やプレッシャーを受けたとき、人は最も高い自我状態で受け止め、判断し、行動する傾向があります。'+
+    'あなたの基本タイプは「'+T.name+'」——'+T.summary+'。'+
+    SUPPLEMENT['energy|'+L.energyKey];
+
+  // 1. コミュニケーションタイプ（傾向と対策）
+  var sec1tend = T.commType+' '+SUPPLEMENT['他者|'+L.otherKey]+' '+SUPPLEMENT['自己|'+L.selfKey];
+  var sec1adv  = T.commAdvice;
+
+  // 2. 自己成長を促す要因
+  var sec2 = T.growth+' '+SUPPLEMENT['A|'+L.aKey]+
+    ' 最も低い自我状態は「'+L.lowest+'」です。この領域を育てることが、次のステージへの鍵になります。';
+
+  // 3. 自己成長を妨げる可能性のある要因
+  var acTypeText = L.acType==='隠す'?'本音や疲れを抱え込みやすい':L.acType==='モロ出し'?'感情が態度に出やすい':'本音が見えにくい';
+  var sec3 = T.barrier+' また、'+acTypeText+'点にも意識を向けておくと、成長の妨げになる前に対処できます。'+' '+SUPPLEMENT['ACtype|'+L.acType];
+
+  // 4. 人間関係の築き方の傾向
+  var sec4 = T.relation+' '+SUPPLEMENT['他者|'+L.otherKey]+' '+SUPPLEMENT['NP|'+L.npKey];
+
+  // 5. 仕事に対する向き合い方
+  var sec5 = T.work+' '+SUPPLEMENT['workA|'+L.workA]+' '+SUPPLEMENT['CP|'+L.cpKey];
+
+  // 6. ストレス耐性
+  var acStress = L.acKey==='high'?'我慢が重なるほど急に限界が来やすいため、早めの言語化と吐き出しの場を意識的に確保しましょう。':
+                 L.acKey==='low' ?'感情が一気に表に出やすいため、クールダウンの時間を意識すると安定します。':
+                                   '状況に応じたセルフケアを習慣にすると安定しやすくなります。';
+  var sec6 = T.stress+' '+SUPPLEMENT['FC|'+L.fcKey]+' '+acStress;
+
+  // 7. 今の自分へのメッセージ（NEW）
+  var sec7 = T.message;
+
+  // 8. 上司・同僚との関わり方のヒント（NEW）
+  var sec8 = T.interpersonal;
+
+  // 9. 今週からの行動目標
+  var actions = T.actions;
+
+  // 10. 成長のための対話アドバイス（推奨ストローク）
+  var sec10 = T.stroke+
+    ' 低い自我状態「'+L.lowest+'」を育てるためのヒント：「'+HINT[L.lowest]+'」を日常に取り入れてみてください。';
+
+  // ────── レンダリング ──────
+  function sec(num, title, body, accent, id){
+    _secIdx++;
+    var cls = 'report-section sec-n'+_secIdx;
+    return '<div class="'+cls+'"'+(id?' id="'+id+'"':'')+'>'+
+      '<div class="section-header">'+
+        '<div class="section-num'+(accent?' accent':'')+'">'+num+'</div>'+
+        '<div class="section-title-text">'+title+'</div>'+
+      '</div>'+
+      '<div class="section-content">'+body+'</div></div>';
+  }
+
+  _secIdx = 0; // セクションカウンターリセット
+  var actionHtml='<div class="action-list">';
+  actions.forEach(function(a,i){
+    actionHtml+='<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+a+'</div></div>';
+  });
+  actionHtml+='</div>';
+
+  var hintHtml='<div class="hint-grid">'+
+    '<div class="hint-card"><div class="hint-label">上司への関わり方</div><div class="hint-text">'+T.interpersonal.split('同僚には：')[0].replace('上司には：','')+'</div></div>'+
+    '<div class="hint-card"><div class="hint-label">同僚・部下への関わり方</div><div class="hint-text">'+T.interpersonal.split('同僚には：')[1]+'</div></div>'+
+    '</div>';
+
+  // ── ゾーンA：自分を知る（PAGE 1 末尾）──
+  var htmlOutA='';
+  htmlOutA+=sec('0','診断の見立て','<p>'+sec0+'</p>',false,'sec-overview');
+  htmlOutA+='<div class="zone-label zone-a">自分を知る</div>';
+  htmlOutA+=sec('1','コミュニケーションタイプ（傾向と対策）',
+    '<p>'+sec1tend+'</p>'+
+    '<div class="note-box default"><strong>対策・アドバイス</strong><br>'+sec1adv+'</div>',false,'sec-comm');
+  htmlOutA+=sec('2','自己成長を促す要因','<p>'+sec2+'</p>',false,'sec-growth');
+  htmlOutA+=sec('3','自己成長を妨げる可能性のある要因','<p>'+sec3+'</p>',false,'sec-barrier');
+
+  // ── ゾーンB+C：関係と仕事・行動へ（PAGE 2）──
+  var htmlOutBC='';
+  htmlOutBC+='<div class="zone-label zone-b">関係と仕事</div>';
+  htmlOutBC+=sec('4','人間関係の築き方の傾向','<p>'+sec4+'</p>',false,'sec-relation');
+  htmlOutBC+=sec('5','仕事に対する向き合い方・見方・捉え方の傾向','<p>'+sec5+'</p>',false,'sec-work');
+  htmlOutBC+=sec('6','ストレス耐性','<p>'+sec6+'</p>',false,'sec-stress');
+  htmlOutBC+=sec('8','上司・同僚との関わり方のヒント',
+    '<p>'+T.interpersonal.split('上司には：').join('<strong>上司には：</strong>').split('同僚には：').join('<br><strong>同僚には：</strong>').split('部下・後輩には：').join('<br><strong>部下・後輩には：</strong>')+'</p>',false,'sec-interpersonal');
+  htmlOutBC+='<div class="zone-label zone-c">行動へ</div>';
+  htmlOutBC+=sec('7','今のあなたへのメッセージ',
+    '<div class="message-box"><div class="msg-title">Message for You</div><div class="msg-body">'+sec7+'</div></div>',
+    true,'sec-message');
+  htmlOutBC+=sec('9','今週からの行動目標',actionHtml,true,'sec-actions');
+  htmlOutBC+=sec('10','成長のための対話アドバイス（推奨ストローク）','<p>'+sec10+'</p>',false,'sec-stroke');
+  htmlOutBC+='<div class="report-section print-hide"><div class="section-header"><div style="width:24px"></div><div class="section-title-text">交流分析について</div></div>'+
+    '<div class="section-content"><div class="memo-box">このレポートは交流分析（エゴグラム）の考え方をもとに、コミュニケーション傾向や人間関係のクセに気づくための資料です。大切なのは「良い・悪い」で決めつけることではなく、今の傾向を知った上で、より良い関係づくりや幸せな人生のためにどう活かすかを考えることです。高い自我状態を下げるのではなく、低い自我状態を育てることが成長の本質です。</div></div></div>';
+
+  document.getElementById('report-body-a').innerHTML=htmlOutA;
+  document.getElementById('report-body-bc').innerHTML=htmlOutBC;
+
+  // ===== 役職別セクション（report-body の外・#role-body に独立レンダリング）=====
+  var role = document.getElementById('role') ? document.getElementById('role').value : '';
+
+  // 若手の場合：セクション10（推奨ストローク）を印刷時は非表示
+  var strokeEl = document.getElementById('sec-stroke');
+  if(strokeEl){
+    strokeEl.classList.add('print-hide');
+  }
+  var roleBodyEl = document.getElementById('role-body');
+  var pbRole = document.getElementById('page-break-role');
+  if(roleBodyEl) roleBodyEl.innerHTML = '';
+  if(pbRole) pbRole.style.display = 'none';
+  if(role && ROLE_ANALYSIS[role] && roleBodyEl){
+    roleBodyEl.innerHTML = buildRoleSection(role, L, T, s);
+    if(pbRole) pbRole.style.display = '';
+  }
+
+  // ===== 価値観バランスセクション =====
+  renderValuesSection(_valuesData);
+
+  // ===== 図表描画 =====
+  renderCharts(s, L);
+
+}
+
+
+// ===== 価値観バランスセクション =====
+var _valuesData = null;
+
+var VAL_META = {
+  a: { label:'A', name:'愛・所属の欲求', color:'#ad1457', desc:'ブランドイメージ・社風・人間関係を重視' },
+  b: { label:'B', name:'達成の欲求',     color:'#283593', desc:'明確な目標・チャレンジ・自己成長を重視' },
+  c: { label:'C', name:'自由の欲求',     color:'#00695c', desc:'自由裁量・時間・柔軟な働き方を重視' },
+  d: { label:'D', name:'楽しみの欲求',   color:'#bf360c', desc:'オン・オフの切り替え・休暇・充実を重視' },
+  e: { label:'E', name:'金銭の欲求',     color:'#827717', desc:'評価・報酬・実力主義の環境を重視' }
+};
+
+function renderValuesSection(vals) {
+  var el = document.getElementById('values-body');
+  if(!el) return;
+  if(!vals){ el.style.display='none'; return; }
+
+  var keys = ['a','b','c','d','e'];
+  var maxKey = keys.reduce(function(mx,k){ return vals[k]>=vals[mx]?k:mx; }, 'a');
+  var maxMeta = VAL_META[maxKey];
+
+  var axisListHtml = '<div style="display:flex;flex-direction:column;gap:5px;margin-top:10px">'+
+    keys.map(function(k){
+      var m = VAL_META[k];
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:11px">'+
+        '<span style="font-weight:700;color:'+m.color+';width:12px;flex-shrink:0">'+m.label+'</span>'+
+        '<span style="color:var(--mid);flex:1;font-size:10px">'+m.name+'</span>'+
+        '<span style="font-weight:700;color:'+m.color+';font-size:11px">'+vals[k]+'</span>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+
+  // テキスト部分のみ更新（canvasは静的HTML）
+  document.getElementById('values-text-content').innerHTML =
+    '<div style="font-size:9px;font-weight:700;color:'+maxMeta.color+';margin-bottom:2px;letter-spacing:.04em">最も強い欲求</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:5px">'+maxMeta.label+' '+maxMeta.name+'（'+vals[maxKey]+'点）</div>'+
+    '<div style="font-size:10px;color:var(--mid);line-height:1.6;margin-bottom:10px;border-left:2px solid '+maxMeta.color+';padding-left:7px">'+
+      maxMeta.desc+'。この欲求が最も強く、仕事選びや職場環境の満足度に大きく影響します。'+
+    '</div>'+
+    axisListHtml;
+
+  el.style.display = '';
+
+  if(window._valuesRadarInst){ window._valuesRadarInst.destroy(); window._valuesRadarInst = null; }
+  setTimeout(function(){
+    var canvas = document.getElementById('valuesRadarChart');
+    if(!canvas) return;
+    window._valuesRadarInst = new Chart(canvas, {
+      type: 'radar',
+      data: {
+        labels: keys.map(function(k){ return [VAL_META[k].label, VAL_META[k].name.replace('の欲求','')]; }),
+        datasets: [{
+          label: '価値観スコア',
+          data: keys.map(function(k){ return vals[k]; }),
+          backgroundColor: 'rgba(26,26,46,0.08)',
+          borderColor: '#1a1a2e',
+          borderWidth: 2,
+          pointBackgroundColor: keys.map(function(k){ return VAL_META[k].color; }),
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            min: 0, max: 5,
+            ticks: { stepSize: 1, font:{ size:10 }, backdropColor:'transparent' },
+            grid: { color:'rgba(0,0,0,0.08)' },
+            angleLines: { color:'rgba(0,0,0,0.08)' },
+            pointLabels: { font:{ size:13, weight:'700' } }
+          }
+        },
+        plugins: { legend:{ display:false } },
+        layout: { padding: 28 }
+      }
+    });
+  }, 80);
+}
+
+function renderCharts(s, L) {
+  // ---- レーダーチャート ----
+  var radarEl = document.getElementById('radarChart');
+  if (window._radarInst) { window._radarInst.destroy(); }
+  window._radarInst = new Chart(radarEl, {
+    type: 'bar',
+    data: {
+      labels: [['CP','批判的な親'], ['NP','養育的な親'], ['A','大人の心'], ['FC','自由な子供'], ['AC','順応した子供']],
+      datasets: [
+        {
+          type: 'line',
+          label: 'スコア',
+          data: [s.cp, s.np, s.a, s.fc, s.ac],
+          borderColor: '#1a1a2e',
+          borderWidth: 2.5,
+          pointBackgroundColor: ['#c0392b','#2c7a50','#2c5282','#b7791f','#6b46a0'],
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          fill: true,
+          backgroundColor: 'rgba(26,26,46,0.06)',
+          tension: 0,
+          order: 1
+        },
+        {
+          type: 'bar',
+          label: '',
+          data: [s.cp, s.np, s.a, s.fc, s.ac],
+          backgroundColor: [
+            'rgba(192,57,43,0.15)',
+            'rgba(44,122,80,0.15)',
+            'rgba(44,82,130,0.15)',
+            'rgba(183,121,31,0.15)',
+            'rgba(107,70,160,0.15)'
+          ],
+          borderColor: [
+            'rgba(192,57,43,0.4)',
+            'rgba(44,122,80,0.4)',
+            'rgba(44,82,130,0.4)',
+            'rgba(183,121,31,0.4)',
+            'rgba(107,70,160,0.4)'
+          ],
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.dataset.type === 'bar') return null;
+              return ' ' + ctx.parsed.y + '点';
+            },
+            title: function(items) {
+              return items[0].label.replace('\n', ' ');
+            }
+          },
+          filter: function(item) { return item.dataset.type !== 'bar'; }
+        }
+      },
+      scales: {
+        y: {
+          min: 0, max: 20,
+          ticks: { stepSize: 5, font: { size: 10 }, color: '#8888aa' },
+          grid: { color: 'rgba(26,26,46,0.06)' },
+          border: { display: false }
+        },
+        x: {
+          ticks: {
+            font: { size: 10, family: "'Noto Sans JP', sans-serif" },
+            color: '#3a3a5a',
+            maxRotation: 0,
+            autoSkip: false
+          },
+          grid: { display: false },
+          border: { display: false }
+        }
+      }
+    }
+  });
+
+  // ---- P-A-C 積み上げバー ----
+  var P = s.cp + s.np;
+  var A = s.a;
+  var C = s.fc + s.ac;
+  var total = P + A + C;
+  var pacData = [
+    { label:'P', sub:'親の心（CP+NP）', val:P, color:'#1a1a2e', pct: Math.round(P/total*100) },
+    { label:'A', sub:'大人の心（A）',    val:A, color:'#2c5282', pct: Math.round(A/total*100) },
+    { label:'C', sub:'子どもの心（FC+AC）', val:C, color:'#6b46a0', pct: Math.round(C/total*100) }
+  ];
+  var pacHtml = '';
+  pacData.forEach(function(d) {
+    var w = Math.round(d.val / 40 * 100);
+    pacHtml +=
+      '<div class="pac-row">' +
+        '<div class="pac-label" style="color:'+d.color+'">'+d.label+'</div>' +
+        '<div class="pac-bar-bg">' +
+          '<div class="pac-bar-fill" style="width:'+w+'%;background:'+d.color+'">' +
+            '<span class="pac-bar-val">'+d.val+'点</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pac-bar-label">'+d.sub+'</div>' +
+      '</div>';
+  });
+  // 比率表示
+  pacHtml += '<div style="margin-top:10px;font-size:11px;color:#8888aa;line-height:1.8">' +
+    'P:A:C = ' + P + ':' + A + ':' + C + '　（' + pacData[0].pct + '% : ' + pacData[1].pct + '% : ' + pacData[2].pct + '%）' +
+    '</div>';
+  document.getElementById('pac-bars').innerHTML = pacHtml;
+
+  // ---- 人生態度マトリクス ----
+  var iAmOK  = s.fc > s.ac;
+  var youOK  = s.np >= s.cp;
+
+  // どの象限か
+  var q = '';
+  if (iAmOK && youOK)   q = 'q1'; // 私OK・あなたOK
+  if (iAmOK && !youOK)  q = 'q2'; // 私OK・あなたNOT OK
+  if (!iAmOK && youOK)  q = 'q3'; // 私NOT OK・あなたOK
+  if (!iAmOK && !youOK) q = 'q4'; // 私NOT OK・あなたNOT OK
+
+  var cells = {
+    q1: { title:'私もOK　あなたもOK', body:'相互信頼・開放的・安心感。話せばわかりあえるという感覚を持ちやすく、対人関係を発展的に築ける最も健全な立場。', attitude:'建設的' },
+    q2: { title:'私はOK　あなたはNOT OK', body:'他者への不信感や批判が強くなりやすい。問題が起きると他者を非難・排除しようとしやすい。CPが強く出ている状態。', attitude:'批判的' },
+    q3: { title:'私はNOT OK　あなたはOK', body:'自己卑下・劣等感・依存的。周囲を過大評価し自分を過小評価しやすい。問題が起きると他者に頼ろうとしやすい。', attitude:'依存的' },
+    q4: { title:'私もNOT OK　あなたもNOT OK', body:'焦りや虚しさ・孤独感が強い。自閉的になったり、逆ギレしやすい。全てがうまくいかないという閉塞感を持ちやすい。', attitude:'閉塞的' }
+  };
+
+  var matrixHtml =
+    '<div style="display:grid;grid-template-columns:22px 1fr;gap:0;margin-top:8px">' +
+      '<div style="display:flex;flex-direction:column;overflow:hidden">' +
+        '<div style="height:28px"></div>' +
+        '<div style="flex:1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-size:9px;color:#8888aa;background:#f0ede6;padding:4px 2px;border-radius:4px 0 0 0;white-space:nowrap;overflow:hidden">あなたOK</div>' +
+        '<div style="flex:1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-size:9px;color:#8888aa;background:#f0ede6;padding:4px 2px;border-radius:0 0 0 4px;white-space:nowrap;overflow:hidden">あなたNOT OK</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;text-align:center;font-size:10px;color:#8888aa;padding-bottom:4px">' +
+          '<div>私NOT OK（AC≧FC）</div><div>私OK（FC＞AC）</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">' +
+          makeCell('q3', cells.q3, q) +
+          makeCell('q1', cells.q1, q) +
+          makeCell('q4', cells.q4, q) +
+          makeCell('q2', cells.q2, q) +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('life-matrix').innerHTML = matrixHtml;
+}
+
+function makeCell(key, data, active) {
+  var isActive = key === active;
+  var bg = isActive ? '#1a1a2e' : (key==='q1' ? '#edf7f1' : '#f7f5ef');
+  var color = isActive ? '#fff' : '#3a3a5a';
+  var titleColor = isActive ? '#7dd9a8' : '#1a1a2e';
+  var badge = isActive ? '<span style="display:inline-block;background:rgba(255,255,255,0.2);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-bottom:6px">▶ 現在地</span><br>' : '';
+  return '<div class="matrix-cell" style="background:'+bg+';padding:12px 10px;border-radius:4px">' +
+    badge +
+    '<div class="mc-title" style="font-size:12px;font-weight:700;color:'+titleColor+';margin-bottom:5px">'+data.title+'</div>' +
+    '<div class="mc-body" style="font-size:11px;color:'+(isActive?'rgba(255,255,255,0.75)':'#8888aa')+';line-height:1.6">'+data.body+'</div>' +
+    '</div>';
+}
+
+
+function formatDate(s){var d=new Date(s);return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';}
+
+// ===== 入力フォームからの連携 =====
+(function(){
+  // ① URLパラメータ直接渡し方式（同タブ遷移時）
+  var p = new URLSearchParams(window.location.search);
+  var name = p.get('name');
+  var cp   = p.get('cp');
+  if(name && cp !== null){
+    document.getElementById('name').value = name;
+    document.getElementById('date').value = p.get('date') || new Date().toISOString().split('T')[0];
+    document.getElementById('dept').value = p.get('dept') || '';
+    document.getElementById('role').value = p.get('role') || '';
+    syncScore('cp', parseInt(cp)||0);
+    syncScore('np', parseInt(p.get('np'))||0);
+    syncScore('a',  parseInt(p.get('a')) ||0);
+    syncScore('fc', parseInt(p.get('fc'))||0);
+    syncScore('ac', parseInt(p.get('ac'))||0);
+    generateReport();
+    return;
+  }
+  // ② tempキー方式（別タブ経由）
+  try{
+    var raw = localStorage.getItem('egogram_role_temp_report');
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    if(Date.now() - d.ts > 10000) return;
+    localStorage.removeItem('egogram_role_temp_report');
+    document.getElementById('name').value = d.name;
+    document.getElementById('date').value = d.date;
+    document.getElementById('dept').value = d.dept || '';
+    document.getElementById('role').value = d.role || '';
+    syncScore('cp', d.scores.cp);
+    syncScore('np', d.scores.np);
+    syncScore('a',  d.scores.a);
+    syncScore('fc', d.scores.fc);
+    syncScore('ac', d.scores.ac);
+    _valuesData = d.scores.values || null;
+    generateReport();
+  }catch(e){}
+})();
+
+async function downloadPDF(){
+  var name=document.getElementById('name').value.trim()||'エゴグラムレポート';
+  await html2pdf().set({
+    margin:[10,10],filename:name+'_エゴグラムレポート.pdf',
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(document.getElementById('report-doc')).save();
+}
+</script>
+</body>
+</html>

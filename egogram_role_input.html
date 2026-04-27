@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エゴグラム データ入力フォーム（役職別）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1a2e;--mid:#3a3a5a;--light:#8888aa;--bg:#f5f4f0;--paper:#fffef9;
+  --border:#d4d0c8;--cp:#c0392b;--np:#2c7a50;--a:#2c5282;--fc:#b7791f;--ac:#6b46a0;
+  --va:#ad1457;--vb:#283593;--vc:#00695c;--vd:#bf360c;--ve:#827717;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* ── トップバー ── */
+.top-bar{background:var(--ink);color:#fff;padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-title{font-family:'Noto Serif JP',serif;font-size:16px;font-weight:700}
+.top-nav{display:flex;gap:10px}
+.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:6px 14px;color:#e8e6e0;font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;text-decoration:none;transition:all .15s}
+.nav-btn:hover{background:rgba(255,255,255,0.2);color:#fff}
+.nav-btn.primary{background:#fff;color:var(--ink)}
+.nav-btn.primary:hover{background:#e8e6e0}
+
+/* ── レイアウト ── */
+.main-layout{display:grid;grid-template-columns:380px 1fr;min-height:calc(100vh - 56px)}
+
+/* ── 左：入力パネル ── */
+.input-panel{background:var(--ink);color:#e8e6e0;padding:28px 24px;display:flex;flex-direction:column;gap:18px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.input-panel::-webkit-scrollbar{width:4px}
+.input-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+
+.section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:7px}
+.field-group{display:flex;flex-direction:column;gap:9px}
+.field-row{display:flex;flex-direction:column;gap:3px}
+.field-label{font-size:11px;color:rgba(255,255,255,0.45)}
+.field-input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:7px 11px;color:#fff;font-size:13px;font-family:'Noto Sans JP',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.field-input:focus{border-color:rgba(255,255,255,0.4)}
+.field-input::placeholder{color:rgba(255,255,255,0.2)}
+
+/* スコアスライダー */
+.score-items{display:flex;flex-direction:column;gap:10px}
+.score-item{display:flex;flex-direction:column;gap:3px}
+.score-name{font-size:12px;font-weight:700;letter-spacing:.06em}
+.score-desc{font-size:10px;color:rgba(255,255,255,0.3);font-weight:400;margin-left:4px}
+.score-controls{display:flex;align-items:center;gap:7px}
+.score-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--c,#fff) 0%,var(--c,#fff) var(--val,50%),rgba(255,255,255,0.15) var(--val,50%))}
+.score-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+.score-number{width:44px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:4px 5px;color:#fff;font-size:13px;font-weight:700;text-align:center;font-family:'Noto Sans JP',sans-serif;outline:none}
+.cp-color{color:var(--cp)}.np-color{color:var(--np)}.a-color{color:var(--a)}.fc-color{color:var(--fc)}.ac-color{color:var(--ac)}
+.va-color{color:var(--va)}.vb-color{color:var(--vb)}.vc-color{color:var(--vc)}.vd-color{color:var(--vd)}.ve-color{color:var(--ve)}
+.values-toggle-btn{background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.2);border-radius:5px;padding:7px 11px;color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:.1em;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all .15s}
+.values-toggle-btn:hover{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7)}
+
+/* ボタン */
+.btn{border:none;border-radius:7px;padding:11px 16px;font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-save{background:#2c7a50;color:#fff}
+.btn-save:hover{background:#1e5c3a;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.btn-secondary{background:rgba(255,255,255,0.08);color:#e8e6e0;border:1px solid rgba(255,255,255,0.15)}
+.btn-secondary:hover{background:rgba(255,255,255,0.15)}
+.btn-danger{background:rgba(192,57,43,0.15);color:#e57a6a;border:1px solid rgba(192,57,43,0.25);font-size:11px;padding:6px 10px}
+.btn-danger:hover{background:rgba(192,57,43,0.3)}
+.btn-row{display:flex;gap:6px}
+
+/* グループ選択 */
+.group-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:11px 13px}
+
+/* 前回データプレビュー */
+.prev-box{background:rgba(44,122,80,0.12);border:1px solid rgba(44,122,80,0.25);border-radius:6px;padding:10px 13px;font-size:11px;line-height:1.8}
+.prev-label{font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:5px}
+
+/* ── 右：データ一覧 ── */
+.data-panel{padding:28px 32px;overflow-y:auto}
+
+/* サマリーカード */
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.sum-card{background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:14px 18px}
+.sum-label{font-size:11px;color:var(--light);margin-bottom:4px;letter-spacing:.05em}
+.sum-value{font-size:26px;font-weight:700;color:var(--ink)}
+.sum-sub{font-size:11px;color:var(--light);margin-top:2px}
+
+/* テーブル */
+.table-wrap{background:var(--paper);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px}
+.table-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.table-title{font-family:'Noto Serif JP',serif;font-size:14px;font-weight:700}
+.filter-input{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--ink);outline:none;width:160px}
+.filter-input:focus{border-color:var(--light)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:700;color:var(--light);letter-spacing:.07em;text-align:left;padding:9px 14px;background:#f7f5ef;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--ink);background:#edeae2}
+th.sort-asc::after{content:' ▲';font-size:9px;color:var(--ink)}
+th.sort-desc::after{content:' ▼';font-size:9px;color:var(--ink)}
+td{font-size:12px;color:var(--mid);padding:9px 14px;border-bottom:1px solid #ebe9e3;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#faf8f4}
+.score-pill{display:inline-block;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:700;min-width:26px;text-align:center}
+.session-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--bg);border:1px solid var(--border);border-radius:50%;font-size:10px;font-weight:700;color:var(--mid)}
+.badge-latest{background:#d4f4e2;color:#1a7a4a;font-size:9px;padding:1px 7px;border-radius:8px;font-weight:700;white-space:nowrap}
+.badge-prev{background:#dce9f7;color:#2c5282;font-size:9px;padding:1px 7px;border-radius:8px;font-weight:700;white-space:nowrap}
+.empty-row td{text-align:center;padding:28px;color:var(--light);font-size:13px}
+.del-btn{font-size:11px;padding:3px 8px;background:rgba(192,57,43,0.08);color:#c0392b;border:1px solid rgba(192,57,43,0.2);border-radius:4px;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.del-btn:hover{background:rgba(192,57,43,0.18)}
+.report-btn{font-size:11px;padding:3px 8px;background:rgba(26,26,46,0.08);color:var(--mid);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-right:2px}
+.report-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.report-btn.change{background:rgba(26,122,74,0.08);color:#1a7a4a;border-color:rgba(26,122,74,0.25)}
+.report-btn.change:hover{background:#1a7a4a;color:#fff}
+.expand-btn{font-size:10px;padding:2px 5px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--light);font-family:'Noto Sans JP',sans-serif;margin-right:4px}
+.expand-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.role-mgr{background:#dce9f7;color:#1a3a7a}
+.role-gen{background:#e8f5e9;color:#1a5c34}
+.role-jun{background:#fef6e4;color:#7a4f0a}
+.row-main td{background:#fff}
+.row-history td{background:#faf8f4;border-bottom:1px solid #ede9e0}
+.row-history:last-child td{border-bottom:2px solid var(--border)}
+
+/* トースト */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a7a4a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);opacity:0;pointer-events:none;transition:opacity .3s;line-height:1.7}
+
+/* 編集モードバナー */
+#edit-mode-banner{display:none;background:rgba(91,79,207,0.15);border:1px solid rgba(91,79,207,0.35);border-radius:6px;padding:8px 12px;font-size:11px;color:#5b4fcf;line-height:1.5}
+.edit-btn{font-size:11px;padding:3px 8px;background:rgba(91,79,207,0.1);color:#5b4fcf;border:1px solid rgba(91,79,207,0.3);border-radius:4px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-right:2px}
+.edit-btn:hover{background:#5b4fcf;color:#fff;border-color:#5b4fcf}
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<div class="top-bar">
+  <div class="top-title">エゴグラム データ入力フォーム（役職別）</div>
+  <div class="top-nav">
+    <a class="nav-btn" id="nav-admin" href="egogram_role_admin.html" target="_blank">🏠 管理ダッシュボード</a>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- 左パネル：入力フォーム -->
+  <div class="input-panel">
+
+    <!-- グループ選択 -->
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:12px 14px">
+      <div class="section-label">グループ</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <select class="field-input" id="group-select" style="flex:1" onchange="onGroupChange(this.value)"></select>
+        <button class="btn btn-secondary" style="font-size:11px;padding:6px 10px;white-space:nowrap" onclick="createGroup()">＋新規</button>
+        <button class="btn btn-danger" onclick="deleteGroup()">削除</button>
+      </div>
+      <div id="group-note" style="font-size:10px;color:rgba(255,255,255,0.35);line-height:1.5"></div>
+    </div>
+
+    <!-- 対象者情報 -->
+    <div>
+      <div class="section-label">対象者情報</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field-label">氏名 <span style="color:#e57a6a">＊</span></div>
+          <input class="field-input" id="name" type="text" placeholder="例：山田 太郎" oninput="onNameChange()">
+        </div>
+        <div class="field-row">
+          <div class="field-label">実施日 <span style="color:#e57a6a">＊</span></div>
+          <input class="field-input" id="date" type="date">
+        </div>
+        <div class="field-row">
+          <div class="field-label">メモ（任意）</div>
+          <input class="field-input" id="memo" type="text" placeholder="例：研修3ヶ月後 / 異動後">
+        </div>
+        <div class="field-row">
+          <div class="field-label">役職区分 <span style="color:#e57a6a">＊</span></div>
+          <select class="field-input" id="role">
+            <option value="">— 選択してください —</option>
+            <option value="管理職">管理職</option>
+            <option value="一般">一般</option>
+            <option value="若手">若手</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- スコア -->
+    <div>
+      <div class="section-label">エゴグラム スコア（0〜20）</div>
+      <div class="score-items">
+        <div class="score-item">
+          <div class="score-name cp-color">CP <span class="score-desc">批判的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="cp-slider" min="0" max="20" value="10" style="--c:var(--cp)" oninput="sync('cp',this.value)">
+            <input type="number" class="score-number" id="cp-num" min="0" max="20" value="10" oninput="sync('cp',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name np-color">NP <span class="score-desc">養育的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="np-slider" min="0" max="20" value="10" style="--c:var(--np)" oninput="sync('np',this.value)">
+            <input type="number" class="score-number" id="np-num" min="0" max="20" value="10" oninput="sync('np',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name a-color">A <span class="score-desc">大人の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="a-slider" min="0" max="20" value="10" style="--c:var(--a)" oninput="sync('a',this.value)">
+            <input type="number" class="score-number" id="a-num" min="0" max="20" value="10" oninput="sync('a',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name fc-color">FC <span class="score-desc">自由な子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="fc-slider" min="0" max="20" value="10" style="--c:var(--fc)" oninput="sync('fc',this.value)">
+            <input type="number" class="score-number" id="fc-num" min="0" max="20" value="10" oninput="sync('fc',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name ac-color">AC <span class="score-desc">順応した子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="ac-slider" min="0" max="20" value="10" style="--c:var(--ac)" oninput="sync('ac',this.value)">
+            <input type="number" class="score-number" id="ac-num" min="0" max="20" value="10" oninput="sync('ac',this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 価値観テスト -->
+    <div>
+      <div class="values-toggle-btn" onclick="toggleValues()" id="values-toggle-btn">
+        <span>価値観テスト スコア（0〜5）</span>
+        <span id="values-toggle-icon">＋ 入力する（任意）</span>
+      </div>
+      <div id="values-section" style="display:none;margin-top:8px">
+        <div class="score-items">
+          <div class="score-item">
+            <div class="score-name va-color">A <span class="score-desc">愛・所属の欲求</span></div>
+            <div class="score-controls">
+              <input type="range" class="score-slider" id="va-slider" min="0" max="5" step="0.1" value="3" style="--c:var(--va);--val:60%" oninput="syncVal('a',this.value)">
+              <input type="number" class="score-number" id="va-num" min="0" max="5" step="0.1" value="3" oninput="syncVal('a',this.value)">
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-name vb-color">B <span class="score-desc">達成の欲求</span></div>
+            <div class="score-controls">
+              <input type="range" class="score-slider" id="vb-slider" min="0" max="5" step="0.1" value="3" style="--c:var(--vb);--val:60%" oninput="syncVal('b',this.value)">
+              <input type="number" class="score-number" id="vb-num" min="0" max="5" step="0.1" value="3" oninput="syncVal('b',this.value)">
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-name vc-color">C <span class="score-desc">自由の欲求</span></div>
+            <div class="score-controls">
+              <input type="range" class="score-slider" id="vc-slider" min="0" max="5" step="0.1" value="3" style="--c:var(--vc);--val:60%" oninput="syncVal('c',this.value)">
+              <input type="number" class="score-number" id="vc-num" min="0" max="5" step="0.1" value="3" oninput="syncVal('c',this.value)">
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-name vd-color">D <span class="score-desc">楽しみの欲求</span></div>
+            <div class="score-controls">
+              <input type="range" class="score-slider" id="vd-slider" min="0" max="5" step="0.1" value="3" style="--c:var(--vd);--val:60%" oninput="syncVal('d',this.value)">
+              <input type="number" class="score-number" id="vd-num" min="0" max="5" step="0.1" value="3" oninput="syncVal('d',this.value)">
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-name ve-color">E <span class="score-desc">金銭の欲求</span></div>
+            <div class="score-controls">
+              <input type="range" class="score-slider" id="ve-slider" min="0" max="5" step="0.1" value="3" style="--c:var(--ve);--val:60%" oninput="syncVal('e',this.value)">
+              <input type="number" class="score-number" id="ve-num" min="0" max="5" step="0.1" value="3" oninput="syncVal('e',this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 直近データプレビュー -->
+    <div id="prev-box" class="prev-box" style="display:none">
+      <div class="prev-label">この氏名の直近データ</div>
+      <div id="prev-body" style="color:rgba(255,255,255,.7)"></div>
+    </div>
+
+    <!-- 編集モードバナー -->
+    <div id="edit-mode-banner">
+      ✏️ <strong>編集モード</strong>：<span id="edit-mode-label"></span><br>
+      <span style="opacity:.7">内容を修正して「保存する」を押すと上書き更新されます。</span>
+      <br><button style="margin-top:5px;background:none;border:1px solid rgba(91,79,207,0.3);border-radius:4px;padding:2px 8px;font-size:10px;color:#5b4fcf;cursor:pointer;font-family:'Noto Sans JP',sans-serif" onclick="clearEditMode()">キャンセル</button>
+    </div>
+
+    <button class="btn btn-save" onclick="saveEntry()">💾　保存する</button>
+
+    <!-- 保存後のレポート出力エリア -->
+    <div id="report-actions" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:14px">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:10px">レポート出力</div>
+      <div id="report-actions-name" style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="openAnalysisReport()" style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:10px 14px;color:#fff;font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:left;transition:background .15s" onmouseover="this.style.background='#2d2d4e'" onmouseout="this.style.background='#1a1a2e'">
+          📄 分析レポートを開く<span style="font-size:10px;font-weight:400;opacity:.55;margin-left:8px">受検者に渡す個人シート</span>
+        </button>
+        <button id="change-report-btn" onclick="openChangeReport()" style="background:#1a7a4a;border:1px solid rgba(255,255,255,0.15);border-radius:7px;padding:10px 14px;color:#fff;font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:left;transition:background .15s" onmouseover="this.style.background='#0e5c37'" onmouseout="this.style.background='#1a7a4a'">
+          📈 変化分析レポートを開く<span style="font-size:10px;font-weight:400;opacity:.7;margin-left:8px">2回目以降・人事FB用</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右パネル：データ一覧 -->
+  <div class="data-panel">
+
+    <!-- サマリー -->
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="sum-label">受検者数</div>
+        <div class="sum-value" id="sum-persons">—</div>
+        <div class="sum-sub">名（累計）</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">総セッション数</div>
+        <div class="sum-value" id="sum-sessions">—</div>
+        <div class="sum-sub">件（全受検者合計）</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">複数回受検</div>
+        <div class="sum-value" id="sum-multi">—</div>
+        <div class="sum-sub">名（変化追跡可能）</div>
+      </div>
+    </div>
+
+    <!-- データ一覧テーブル -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">保存済みデータ一覧</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="filter-input" id="search" type="text" placeholder="氏名・役職で絞り込み..." oninput="renderTable()">
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th id="th-name" onclick="sortBy('name')">氏名</th>
+            <th id="th-count" onclick="sortBy('count')">回数</th>
+            <th id="th-date" onclick="sortBy('date')">実施日</th>
+            <th>メモ</th>
+            <th id="th-role" onclick="sortBy('role')">役職</th>
+            <th style="color:var(--cp)" onclick="sortBy('cp')" id="th-cp">CP</th>
+            <th style="color:var(--np)" onclick="sortBy('np')" id="th-np">NP</th>
+            <th style="color:var(--a)"  onclick="sortBy('a')"  id="th-a">A</th>
+            <th style="color:var(--fc)" onclick="sortBy('fc')" id="th-fc">FC</th>
+            <th style="color:var(--ac)" onclick="sortBy('ac')" id="th-ac">AC</th>
+            <th id="th-total" onclick="sortBy('total')">合計</th>
+            <th>レポート出力 / 操作</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /data-panel -->
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== 定数 =====
+var GROUP_LIST_KEY   = 'egogram_role_groups_v1';
+var SESSION_GROUP_KEY = 'egogram_role_current_group';
+var currentGroup     = '';
+var STORAGE_KEY      = 'egogram_role_history_v1';
+var sortKey          = 'date';
+var sortDir          = -1;
+var expandedNames    = {};
+var _lastSavedName   = '';
+
+function getGroupKey(g){ return g ? 'egogram_role_group_'+g : 'egogram_role_history_v1'; }
+function loadGroups(){ try{return JSON.parse(localStorage.getItem(GROUP_LIST_KEY))||[];}catch(e){return[];} }
+function saveGroups(a){ localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(a)); }
+
+// ===== グループ状態をsessionStorageで全ファイル共有 =====
+
+function getCurrentGroup(){
+  // URL優先 → sessionStorage → デフォルト('')
+  var urlP = new URLSearchParams(window.location.search);
+  var urlG = urlP.get('group');
+  if(urlG !== null) return urlG;
+  return sessionStorage.getItem(SESSION_GROUP_KEY) || '';
+}
+
+function setGroup(g){
+  currentGroup = g;
+  STORAGE_KEY  = getGroupKey(g);
+  // sessionStorageに保存（全ファイルで共有）
+  if(g){ sessionStorage.setItem(SESSION_GROUP_KEY, g); }
+  else { sessionStorage.removeItem(SESSION_GROUP_KEY); }
+  // URLを書き換え（同ファイル内でリロードしてもグループ保持）
+  var newUrl = window.location.pathname + (g ? '?group='+encodeURIComponent(g) : '');
+  history.replaceState(null, '', newUrl);
+  // ナビリンクにグループパラメータを付与
+  var param = g ? '?group='+encodeURIComponent(g) : '';
+  document.getElementById('nav-admin').href  = 'egogram_role_admin.html'+param;
+  document.getElementById('group-note').textContent =
+    g ? '保存先：「'+g+'」　変化レポート・管理ダッシュボードと連携'
+      : 'グループなし（全ファイル共通データ）';
+  renderGroupSelect();
+  renderAll();
+  onNameChange();
+}
+
+function renderGroupSelect(){
+  var groups = loadGroups();
+  var sel = document.getElementById('group-select');
+  sel.innerHTML =
+    '<option value=""'+(currentGroup===''?' selected':'')+'>── グループなし ──</option>'+
+    groups.map(function(g){
+      return '<option value="'+g+'"'+(g===currentGroup?' selected':'')+'>'+g+'</option>';
+    }).join('');
+}
+
+function onGroupChange(val){ setGroup(val); }
+
+function createGroup(){
+  var name = prompt('グループ名を入力してください\n例：A社_営業部、2025年度_研修');
+  if(!name||!name.trim()) return;
+  name = name.trim();
+  var groups = loadGroups();
+  if(groups.indexOf(name)>=0){alert('同名のグループが既に存在します。');return;}
+  groups.push(name);
+  saveGroups(groups);
+  setGroup(name);
+}
+
+function deleteGroup(){
+  if(!currentGroup){alert('削除するグループを選択してください。');return;}
+  if(!confirm('「'+currentGroup+'」のデータを全て削除しますか？\nこの操作は取り消せません。')) return;
+  localStorage.removeItem(getGroupKey(currentGroup));
+  var groups = loadGroups().filter(function(g){return g!==currentGroup;});
+  saveGroups(groups);
+  setGroup('');
+}
+
+// ===== 初期化 =====
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+['cp','np','a','fc','ac'].forEach(function(k){
+  document.getElementById(k+'-slider').style.setProperty('--val','50%');
+});
+setGroup(getCurrentGroup());
+
+// ===== スコア同期 =====
+function sync(k, v){
+  v = Math.min(20,Math.max(0,parseInt(v)||0));
+  document.getElementById(k+'-slider').value = v;
+  document.getElementById(k+'-num').value = v;
+  document.getElementById(k+'-slider').style.setProperty('--val',(v/20*100)+'%');
+}
+var _valuesOpen = false;
+function toggleValues(){
+  _valuesOpen = !_valuesOpen;
+  document.getElementById('values-section').style.display = _valuesOpen ? 'block' : 'none';
+  document.getElementById('values-toggle-icon').textContent = _valuesOpen ? '－ 閉じる' : '＋ 入力する（任意）';
+}
+function syncVal(k, v){
+  v = Math.min(5, Math.max(0, Math.round((parseFloat(v)||0)*10)/10));
+  document.getElementById('v'+k+'-slider').value = v;
+  document.getElementById('v'+k+'-num').value = v;
+  document.getElementById('v'+k+'-slider').style.setProperty('--val', (v/5*100)+'%');
+}
+function getScores(){
+  var base = {
+    cp:parseInt(document.getElementById('cp-num').value)||0,
+    np:parseInt(document.getElementById('np-num').value)||0,
+    a: parseInt(document.getElementById('a-num').value)||0,
+    fc:parseInt(document.getElementById('fc-num').value)||0,
+    ac:parseInt(document.getElementById('ac-num').value)||0
+  };
+  if(_valuesOpen){
+    base.values = {
+      a: parseFloat(document.getElementById('va-num').value)||0,
+      b: parseFloat(document.getElementById('vb-num').value)||0,
+      c: parseFloat(document.getElementById('vc-num').value)||0,
+      d: parseFloat(document.getElementById('vd-num').value)||0,
+      e: parseFloat(document.getElementById('ve-num').value)||0
+    };
+  }
+  return base;
+}
+
+// ===== 氏名変更時：直近データプレビュー =====
+function onNameChange(){
+  var name = document.getElementById('name').value.trim();
+  var box  = document.getElementById('prev-box');
+  if(!name){box.style.display='none';return;}
+  var h = loadHistory();
+  var recs = h.filter(function(s){return s.name===name;});
+  if(recs.length===0){box.style.display='none';return;}
+  var latest = recs[recs.length-1];
+  var s = latest.scores;
+  var clr = {cp:'var(--cp)',np:'var(--np)',a:'var(--a)',fc:'var(--fc)',ac:'var(--ac)'};
+  box.style.display='block';
+  var vclr = {a:'var(--va)',b:'var(--vb)',c:'var(--vc)',d:'var(--vd)',e:'var(--ve)'};
+  var valLine = s.values
+    ? '<br>価値観：'+['a','b','c','d','e'].map(function(k){
+        return '<span style="color:'+vclr[k]+';font-weight:700">'+k.toUpperCase()+' '+s.values[k]+'</span>';
+      }).join('  ')
+    : '';
+  document.getElementById('prev-body').innerHTML =
+    '直近：<strong style="color:#fff">'+latest.date+'</strong>'+(latest.memo?' <span style="opacity:.6">('+latest.memo+')</span>':'')+
+    '　全'+recs.length+'件'+(latest.role ? '　<span style="opacity:.9">【'+latest.role+'】</span>' : '')+'<br>'+
+    ['cp','np','a','fc','ac'].map(function(k){
+      return '<span style="color:'+clr[k]+';font-weight:700">'+k.toUpperCase()+' '+s[k]+'</span>';
+    }).join('  ') + valLine;
+}
+
+// ===== 保存 =====
+function saveEntry(){
+  var name   = document.getElementById('name').value.trim();
+  var date   = document.getElementById('date').value;
+  var memo   = document.getElementById('memo').value.trim();
+  var role   = document.getElementById('role').value;
+  var scores = getScores();
+
+  if(!name){alert('氏名を入力してください。');return;}
+  if(!date){alert('実施日を入力してください。');return;}
+  if(!role){alert('役職区分を選択してください。');return;}
+
+  var h   = loadHistory();
+  var idx = h.findIndex(function(s){return s.name===name && s.date===date;});
+  var entry = {name:name, date:date, memo:memo, role:role, scores:scores, savedAt:new Date().toISOString()};
+
+  if(idx>=0){
+    // 編集モードの場合はそのまま上書き、それ以外は確認
+    if(!_editingKey && !confirm(name+'（'+date+'）のデータが既に存在します。上書きしますか？')) return;
+    h[idx] = entry;
+  } else {
+    // 編集モードで氏名・日付を変えた場合：元のデータを削除して新規追加
+    if(_editingKey){
+      h = h.filter(function(s){ return !(s.name===_editingKey.name && s.date===_editingKey.date); });
+    }
+    h.push(entry);
+  }
+  saveHistoryData(h);
+  clearEditMode();
+  renderAll();
+  onNameChange();
+  showToast(name, date);
+
+  document.getElementById('memo').value='';
+  document.getElementById('role').value='';
+  ['cp','np','a','fc','ac'].forEach(function(k){sync(k,10);});
+  ['a','b','c','d','e'].forEach(function(k){syncVal(k,3);});
+}
+
+// ===== ストレージ =====
+function loadHistory(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];} }
+function saveHistoryData(h){ localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); }
+
+// ===== ソート状態 =====
+var sortKey = 'date';
+var sortDir = -1;
+
+function sortBy(key){
+  if(sortKey===key){ sortDir*=-1; } else { sortKey=key; sortDir=key==='name'?1:-1; }
+  updateSortHeaders();
+  renderTable();
+}
+function updateSortHeaders(){
+  ['name','count','date','cp','np','a','fc','ac','total'].forEach(function(c){
+    var el=document.getElementById('th-'+c);
+    if(!el) return;
+    el.classList.remove('sort-asc','sort-desc');
+    if(c===sortKey) el.classList.add(sortDir===1?'sort-asc':'sort-desc');
+  });
+}
+
+// ===== 展開状態管理 =====
+var expandedNames = {};
+
+function toggleExpand(name){
+  expandedNames[name] = !expandedNames[name];
+  renderTable();
+}
+
+// ===== レンダリング =====
+function renderAll(){
+  var h = loadHistory();
+  var map={};
+  h.forEach(function(s){if(!map[s.name])map[s.name]=[];map[s.name].push(s);});
+  var persons = Object.entries(map).map(function(e){
+    return{name:e[0], sessions:e[1].sort(function(a,b){return a.date.localeCompare(b.date);})};
+  });
+  document.getElementById('sum-persons').textContent  = persons.length;
+  document.getElementById('sum-sessions').textContent = h.length;
+  document.getElementById('sum-multi').textContent    = persons.filter(function(p){return p.sessions.length>=2;}).length;
+  renderTable(persons);
+}
+
+function renderTable(persons){
+  if(!persons){
+    var h=loadHistory(), map={};
+    h.forEach(function(s){if(!map[s.name])map[s.name]=[];map[s.name].push(s);});
+    persons=Object.entries(map).map(function(e){
+      return{name:e[0], sessions:e[1].sort(function(a,b){return a.date.localeCompare(b.date);})};
+    });
+  }
+  var q = document.getElementById('search').value.trim().toLowerCase();
+  if(q) persons=persons.filter(function(p){
+    var latest = p.sessions[p.sessions.length-1];
+    var role = (latest.role||'').toLowerCase();
+    return p.name.toLowerCase().indexOf(q)>=0 || role.indexOf(q)>=0;
+  });
+
+  // 直近スコアでソート用の行を作成
+  var rows = persons.map(function(p){
+    var latest = p.sessions[p.sessions.length-1];
+    var s = latest.scores;
+    return { person:p, session:latest, total:s.cp+s.np+s.a+s.fc+s.ac, count:p.sessions.length };
+  });
+
+  rows.sort(function(a,b){
+    var va, vb;
+    switch(sortKey){
+      case 'name':  return a.person.name.localeCompare(b.person.name)*sortDir;
+      case 'date':  return a.session.date.localeCompare(b.session.date)*sortDir;
+      case 'role':  return (a.session.role||'').localeCompare(b.session.role||'')*sortDir;
+      case 'count': va=a.count; vb=b.count; break;
+      case 'total': va=a.total; vb=b.total; break;
+      default: va=a.session.scores[sortKey]||0; vb=b.session.scores[sortKey]||0;
+    }
+    return (va-vb)*sortDir;
+  });
+
+  var tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  if(rows.length===0){
+    var emptyTr = document.createElement('tr');
+    emptyTr.className = 'empty-row';
+    var emptyTd = document.createElement('td');
+    emptyTd.setAttribute('colspan','12');
+    emptyTd.textContent = 'データがありません。左のフォームからスコアを入力してください。';
+    emptyTr.appendChild(emptyTd);
+    tbody.appendChild(emptyTr);
+    return;
+  }
+
+  var clrBg={cp:'rgba(192,57,43,0.1)',np:'rgba(44,122,80,0.1)',a:'rgba(44,82,130,0.1)',fc:'rgba(183,121,31,0.1)',ac:'rgba(107,70,160,0.1)'};
+  var clrFg={cp:'var(--cp)',np:'var(--np)',a:'var(--a)',fc:'var(--fc)',ac:'var(--ac)'};
+
+  function makePill(k,v){
+    var sp = document.createElement('span');
+    sp.className = 'score-pill';
+    sp.style.background = clrBg[k];
+    sp.style.color = clrFg[k];
+    sp.textContent = v;
+    return sp;
+  }
+
+  function makeBtn(label, cls, handler){
+    var b = document.createElement('button');
+    b.className = cls;
+    b.textContent = label;
+    b.onclick = handler;
+    return b;
+  }
+
+  rows.forEach(function(r){
+    var s = r.session, p = r.person;
+    var isExpanded = !!expandedNames[p.name];
+    var hasHistory = r.count >= 2;
+    var total = s.scores.cp+s.scores.np+s.scores.a+s.scores.fc+s.scores.ac;
+
+    // ── メイン行 ──
+    var tr = document.createElement('tr');
+    tr.className = 'row-main';
+
+    // 氏名セル
+    var td0 = document.createElement('td');
+    if(hasHistory){
+      var expBtn = document.createElement('button');
+      expBtn.className = 'expand-btn';
+      expBtn.textContent = isExpanded ? '▼' : '▶';
+      (function(name){ expBtn.onclick = function(){ toggleExpand(name); }; })(p.name);
+      td0.appendChild(expBtn);
+      td0.appendChild(document.createTextNode(' '));
+    }
+    var strong = document.createElement('strong');
+    strong.textContent = p.name;
+    td0.appendChild(strong);
+    tr.appendChild(td0);
+
+    // 回数セル
+    var td1 = document.createElement('td');
+    var badge = document.createElement('span');
+    badge.className = 'badge-latest';
+    badge.textContent = '直近';
+    td1.appendChild(badge);
+    if(r.count >= 2){
+      var cntBadge = document.createElement('span');
+      cntBadge.style.cssText = 'font-size:10px;background:#e8e4dc;color:var(--mid);padding:1px 6px;border-radius:8px;font-weight:700;margin-left:4px';
+      cntBadge.textContent = '全'+r.count+'回';
+      td1.appendChild(cntBadge);
+    }
+    tr.appendChild(td1);
+
+    // 実施日
+    var td2 = document.createElement('td');
+    td2.textContent = s.date;
+    tr.appendChild(td2);
+
+    // メモ
+    var td3 = document.createElement('td');
+    td3.style.cssText = 'color:var(--light);font-size:11px';
+    td3.textContent = s.memo || '—';
+    tr.appendChild(td3);
+
+    // 役職
+    var tdRole = document.createElement('td');
+    if(s.role){
+      var roleBadge = document.createElement('span');
+      var roleClass = s.role==='管理職' ? 'role-mgr' : s.role==='若手' ? 'role-jun' : 'role-gen';
+      roleBadge.className = 'role-badge ' + roleClass;
+      roleBadge.textContent = s.role;
+      tdRole.appendChild(roleBadge);
+    } else {
+      tdRole.style.color='var(--light)';
+      tdRole.style.fontSize='11px';
+      tdRole.textContent='—';
+    }
+    tr.appendChild(tdRole);
+
+    // スコア
+    ['cp','np','a','fc','ac'].forEach(function(k){
+      var td = document.createElement('td');
+      td.appendChild(makePill(k, s.scores[k]));
+      tr.appendChild(td);
+    });
+
+    // 合計
+    var tdTotal = document.createElement('td');
+    var totalStrong = document.createElement('strong');
+    totalStrong.textContent = total;
+    tdTotal.appendChild(totalStrong);
+    tr.appendChild(tdTotal);
+
+    // 操作
+    var tdOp = document.createElement('td');
+    tdOp.style.whiteSpace = 'nowrap';
+    (function(nm, dt){
+      tdOp.appendChild(makeBtn('分析', 'report-btn', function(){ openAnalysisReportFor(nm, dt); }));
+    })(p.name, s.date);
+    if(r.count >= 2){
+      (function(nm){
+        tdOp.appendChild(makeBtn('変化', 'report-btn change', function(){ openChangeReportFor(nm); }));
+      })(p.name);
+    } else {
+      var noChange = document.createElement('span');
+      noChange.style.cssText = 'font-size:10px;color:var(--light);padding:0 4px';
+      noChange.textContent = '変化は2回〜';
+      tdOp.appendChild(noChange);
+    }
+    (function(nm, dt){
+      tdOp.appendChild(makeBtn('編集', 'edit-btn', function(){ loadForEdit(nm, dt); }));
+    })(p.name, s.date);
+    (function(nm, dt){
+      tdOp.appendChild(makeBtn('削除', 'del-btn', function(){ deleteEntry(nm, dt); }));
+    })(p.name, s.date);
+    tr.appendChild(tdOp);
+
+    tbody.appendChild(tr);
+
+    // ── 過去回（展開時のみ） ──
+    if(isExpanded && hasHistory){
+      var past = p.sessions.slice(0, p.sessions.length-1).slice().reverse();
+      past.forEach(function(ps, i){
+        var nth = p.sessions.length - 1 - i;
+        var pt = ps.scores.cp+ps.scores.np+ps.scores.a+ps.scores.fc+ps.scores.ac;
+        var htr = document.createElement('tr');
+        htr.className = 'row-history';
+
+        var htd0 = document.createElement('td');
+        htd0.style.cssText = 'padding-left:32px;color:var(--light);font-size:11px';
+        htd0.textContent = '第'+nth+'回';
+        htr.appendChild(htd0);
+
+        var htd1 = document.createElement('td');
+        var pastSpan = document.createElement('span');
+        pastSpan.style.cssText = 'font-size:10px;color:var(--light)';
+        pastSpan.textContent = '過去';
+        htd1.appendChild(pastSpan);
+        htr.appendChild(htd1);
+
+        var htd2 = document.createElement('td');
+        htd2.style.cssText = 'font-size:11px;color:var(--mid)';
+        htd2.textContent = ps.date;
+        htr.appendChild(htd2);
+
+        var htd3 = document.createElement('td');
+        htd3.style.cssText = 'color:var(--light);font-size:11px';
+        htd3.textContent = ps.memo || '—';
+        htr.appendChild(htd3);
+
+        var htdRole = document.createElement('td');
+        if(ps.role){
+          var hRoleBadge = document.createElement('span');
+          var hRoleClass = ps.role==='管理職' ? 'role-mgr' : ps.role==='若手' ? 'role-jun' : 'role-gen';
+          hRoleBadge.className = 'role-badge ' + hRoleClass;
+          hRoleBadge.textContent = ps.role;
+          htdRole.appendChild(hRoleBadge);
+        } else {
+          htdRole.style.color='var(--light)';
+          htdRole.style.fontSize='11px';
+          htdRole.textContent='—';
+        }
+        htr.appendChild(htdRole);
+
+        ['cp','np','a','fc','ac'].forEach(function(k){
+          var htd = document.createElement('td');
+          htd.appendChild(makePill(k, ps.scores[k]));
+          htr.appendChild(htd);
+        });
+
+        var htdTotal = document.createElement('td');
+        htdTotal.style.color = 'var(--light)';
+        htdTotal.textContent = pt;
+        htr.appendChild(htdTotal);
+
+        var htdOp = document.createElement('td');
+        htdOp.style.whiteSpace = 'nowrap';
+        (function(nm, dt){
+          htdOp.appendChild(makeBtn('分析', 'report-btn', function(){ openAnalysisReportFor(nm, dt); }));
+          htdOp.appendChild(makeBtn('編集', 'edit-btn', function(){ loadForEdit(nm, dt); }));
+          htdOp.appendChild(makeBtn('削除', 'del-btn', function(){ deleteEntry(nm, dt); }));
+        })(p.name, ps.date);
+        htr.appendChild(htdOp);
+
+        tbody.appendChild(htr);
+      });
+    }
+  });
+}
+
+function deleteEntry(name, date){
+  if(!confirm(name+'（'+date+'）のデータを削除しますか？')) return;
+  var h = loadHistory().filter(function(s){return!(s.name===name&&s.date===date);});
+  saveHistoryData(h);
+  renderAll();
+  onNameChange();
+}
+
+// ===== 編集モード =====
+var _editingKey = null; // {name, date}
+
+function loadForEdit(name, date){
+  var h = loadHistory();
+  var rec = h.find(function(s){ return s.name===name && s.date===date; });
+  if(!rec){ alert('データが見つかりません。'); return; }
+  _editingKey = {name: name, date: date};
+
+  // フォームに値をセット
+  document.getElementById('name').value = rec.name;
+  document.getElementById('date').value = rec.date;
+  document.getElementById('memo').value = rec.memo || '';
+  document.getElementById('role').value = rec.role || '';
+
+  var s = rec.scores;
+  ['cp','np','a','fc','ac'].forEach(function(k){ sync(k, s[k]); });
+
+  var v = s.values;
+  if(v){
+    if(!_valuesOpen) toggleValues();
+    ['a','b','c','d','e'].forEach(function(k){ syncVal(k, v[k]||3); });
+  } else {
+    if(_valuesOpen) toggleValues(); // 閉じる
+  }
+
+  // 編集バナー表示
+  var banner = document.getElementById('edit-mode-banner');
+  document.getElementById('edit-mode-label').textContent = rec.name + '（' + rec.date + '）';
+  banner.style.display = 'block';
+
+  // 左パネルにスクロール
+  document.querySelector('.input-panel').scrollTop = 0;
+}
+
+function clearEditMode(){
+  _editingKey = null;
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  document.getElementById('edit-mode-label').textContent = '';
+}
+
+function showToast(name, date){
+  _lastSavedName = name;
+  var t = document.getElementById('toast');
+  var g = currentGroup ? '「'+currentGroup+'」グループ' : 'グループなし';
+  t.innerHTML = '✅ <strong>'+name+'</strong>（'+date+'）を保存しました<br>'+
+    '<span style="font-size:11px;opacity:.8">'+g+' → 変化レポート・管理ダッシュボードに連携</span>';
+  t.style.opacity='1';
+  clearTimeout(t._to);
+  t._to=setTimeout(function(){t.style.opacity='0';},3500);
+
+  // レポート出力エリアを表示
+  var area = document.getElementById('report-actions');
+  var nameLabel = document.getElementById('report-actions-name');
+  var changeBtn = document.getElementById('change-report-btn');
+  area.style.display = 'block';
+  nameLabel.textContent = name + ' さん';
+  // 変化レポートボタン：2回以上のデータがあれば有効
+  var h = loadHistory();
+  var recs = h.filter(function(s){ return s.name===name; });
+  if(recs.length < 2){
+    changeBtn.style.opacity = '0.45';
+    changeBtn.style.cursor = 'default';
+    changeBtn.title = '2回目以降から利用できます（現在'+recs.length+'回分）';
+    var sp2 = changeBtn.querySelector('span');
+    if(sp2) sp2.textContent = '2回目以降から（現在'+recs.length+'回分）';
+  } else {
+    changeBtn.style.opacity = '1';
+    changeBtn.style.cursor = 'pointer';
+    changeBtn.title = '';
+    var sp2 = changeBtn.querySelector('span');
+    if(sp2) sp2.textContent = '2回目以降・人事FB用';
+  }
+}
+
+// ===== レポート出力関数 =====
+var _lastSavedName = '';
+
+function openAnalysisReport(){
+  if(!_lastSavedName){ alert('先にデータを保存してください。'); return; }
+  openAnalysisReportFor(_lastSavedName);
+}
+
+function openChangeReport(){
+  if(!_lastSavedName){ alert('先にデータを保存してください。'); return; }
+  openChangeReportFor(_lastSavedName);
+}
+
+function openAnalysisReportFor(name, date){
+  var h = loadHistory();
+  var recs = h.filter(function(s){ return s.name===name; });
+  recs.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(recs.length === 0){ alert(name+'のデータが見つかりません。'); return; }
+  // 日付指定があればその回、なければ直近
+  var target = date
+    ? (recs.find(function(s){ return s.date===date; }) || recs[recs.length-1])
+    : recs[recs.length-1];
+  localStorage.setItem('egogram_role_temp_report', JSON.stringify({
+    name: name, date: target.date, dept: target.memo||'', role: target.role||'', scores: target.scores, ts: Date.now()
+  }));
+  window.open('egogram_role_report.html?from=input');
+}
+
+function openChangeReportFor(name){
+  var h = loadHistory();
+  var recs = h.filter(function(s){ return s.name===name; });
+  if(recs.length < 2){
+    alert(name+'さんのデータは'+recs.length+'回分のみです。\n変化レポートは2回目以降から表示されます。');
+    return;
+  }
+  recs.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  localStorage.setItem('egogram_role_temp_change', JSON.stringify({
+    name: name, sessions: recs, ts: Date.now()
+  }));
+  window.open('egogram_role_change_report.html');
+}
+</script>
+</body>
+</html>

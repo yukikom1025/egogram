@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エゴグラム 変化分析レポート（役職別）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1a2e;--mid:#3a3a5a;--light:#8888aa;--bg:#f5f4f0;--paper:#fffef9;--border:#d4d0c8;--cp:#c0392b;--np:#2c7a50;--a:#2c5282;--fc:#b7791f;--ac:#6b46a0;--up:#1a7a4a;--dn:#c0392b;--neu:#4a4a6a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+.app-wrapper{display:grid;grid-template-columns:360px 1fr;min-height:100vh}
+
+/* LEFT */
+.input-panel{background:var(--ink);color:#e8e6e0;padding:28px 24px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+.input-panel::-webkit-scrollbar{width:4px}
+.input-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+.panel-title{font-family:'Noto Serif JP',serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:2px}
+.panel-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.1em;text-transform:uppercase}
+.panel-header{border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:14px}
+.section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:7px}
+.field-group{display:flex;flex-direction:column;gap:9px}
+.field-row{display:flex;flex-direction:column;gap:3px}
+.field-label{font-size:11px;color:rgba(255,255,255,0.45)}
+.field-input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:7px 11px;color:#fff;font-size:13px;font-family:'Noto Sans JP',sans-serif;outline:none;width:100%}
+.field-input:focus{border-color:rgba(255,255,255,0.4)}
+.field-input::placeholder{color:rgba(255,255,255,0.2)}
+.score-items{display:flex;flex-direction:column;gap:10px}
+.score-item{display:flex;flex-direction:column;gap:3px}
+.score-name{font-size:12px;font-weight:700;letter-spacing:.06em}
+.score-desc{font-size:10px;color:rgba(255,255,255,0.3);font-weight:400;margin-left:4px}
+.score-controls{display:flex;align-items:center;gap:7px}
+.score-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--c,#fff) 0%,var(--c,#fff) var(--val,50%),rgba(255,255,255,0.15) var(--val,50%))}
+.score-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+.score-number{width:44px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:4px 5px;color:#fff;font-size:13px;font-weight:700;text-align:center;font-family:'Noto Sans JP',sans-serif;outline:none}
+.cp-color{color:var(--cp)}.np-color{color:var(--np)}.a-color{color:var(--a)}.fc-color{color:var(--fc)}.ac-color{color:var(--ac)}
+.btn{border:none;border-radius:7px;padding:11px 16px;font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;letter-spacing:.04em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-primary{background:#fff;color:var(--ink)}
+.btn-primary:hover{background:#e8e6e0;transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.08);color:#e8e6e0;border:1px solid rgba(255,255,255,0.15)}
+.btn-secondary:hover{background:rgba(255,255,255,0.15)}
+.btn-danger{background:rgba(192,57,43,0.2);color:#e57a6a;border:1px solid rgba(192,57,43,0.3);font-size:11px;padding:7px 12px}
+.btn-danger:hover{background:rgba(192,57,43,0.35)}
+
+/* 履歴リスト */
+.history-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+.history-item{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 10px;cursor:pointer;transition:all .15s;display:flex;justify-content:space-between;align-items:center}
+.history-item:hover{background:rgba(255,255,255,0.12)}
+.history-item.active{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.14)}
+.history-date{font-size:11px;color:rgba(255,255,255,0.6)}
+.history-scores{font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px}
+.history-del{font-size:11px;color:rgba(192,57,43,0.7);padding:2px 6px;background:rgba(192,57,43,0.15);border-radius:3px;cursor:pointer}
+.history-del:hover{background:rgba(192,57,43,0.3);color:#e57a6a}
+.empty-history{font-size:12px;color:rgba(255,255,255,0.25);text-align:center;padding:12px}
+
+/* RIGHT */
+.report-panel{background:var(--bg);padding:36px 44px;display:flex;flex-direction:column;min-width:0;overflow-x:hidden}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center}
+.empty-icon{font-size:52px;opacity:.3}
+.empty-title{font-size:16px;font-weight:500;color:var(--mid)}
+.empty-desc{font-size:13px;color:var(--light);max-width:280px;line-height:1.7}
+#report-output{display:none;flex-direction:column}
+
+/* レポートドキュメント */
+.report-document{background:var(--paper);border:1px solid var(--border);box-shadow:0 2px 20px rgba(0,0,0,0.07);overflow:hidden}
+.report-header{background:var(--ink);color:#fff;padding:28px 40px;display:flex;justify-content:space-between;align-items:flex-end}
+.report-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:4px}
+.report-main-title{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:700}
+.report-meta{text-align:right;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.9}
+.report-meta strong{color:#fff;font-weight:600}
+
+/* スコア比較バー */
+.compare-bar{padding:20px 40px;border-bottom:1px solid var(--border);background:#f7f5ef}
+.compare-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--light);margin-bottom:14px}
+.compare-rows{display:flex;flex-direction:column;gap:10px}
+.compare-row{display:grid;grid-template-columns:36px 1fr 1fr 56px;gap:8px;align-items:center}
+.compare-key{font-size:11px;font-weight:700;letter-spacing:.06em}
+.bar-wrap{position:relative;height:22px;background:#e8e6e0;border-radius:4px;overflow:visible}
+.bar-prev{height:100%;border-radius:4px;opacity:.35;position:absolute;top:0;left:0;transition:width .6s}
+.bar-curr{height:100%;border-radius:4px;position:absolute;top:0;left:0;transition:width .6s}
+.bar-val{font-size:12px;font-weight:700;color:var(--ink);text-align:right}
+.delta-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
+.delta-up{background:#d4f4e2;color:var(--up)}
+.delta-dn{background:#fde8e8;color:var(--dn)}
+.delta-neu{background:#ebe9e3;color:var(--neu)}
+.legend-row{display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--light)}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+
+/* セクション */
+.report-body{padding:28px 40px;display:flex;flex-direction:column;gap:0}
+.report-section{padding:18px 0;border-bottom:1px solid var(--border)}
+.report-section:last-child{border-bottom:none}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.section-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.section-num.default{background:var(--ink);color:#fff}
+.section-num.green{background:#1a7a4a;color:#fff}
+.section-num.red{background:#c0392b;color:#fff}
+.section-num.gold{background:#92700a;color:#fff}
+.section-title-text{font-family:'Noto Serif JP',serif;font-size:14px;font-weight:700;color:var(--ink)}
+.section-content{padding-left:32px;font-size:13px;line-height:1.95;color:var(--mid)}
+.section-content p{margin-bottom:7px}
+.section-content p:last-child{margin-bottom:0}
+.change-item{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:6px;align-items:flex-start}
+.change-item.up{background:#edf7f1;border-left:3px solid #1a7a4a}
+.change-item.dn{background:#fef2f2;border-left:3px solid #c0392b}
+.change-item.neu{background:#f7f5ef;border-left:3px solid #8888aa}
+.change-key{font-size:12px;font-weight:700;min-width:28px}
+.change-key.up{color:#1a7a4a}.change-key.dn{color:#c0392b}.change-key.neu{color:#8888aa}
+.change-text{font-size:12px;line-height:1.7;color:var(--mid)}
+.note-box{border-left:3px solid var(--ink);padding:10px 14px;border-radius:0 5px 5px 0;margin-top:8px;font-size:12.5px;line-height:1.8}
+/* 価値観変化 */
+.values-change-chart-wrap{position:relative;width:min(320px,100%);aspect-ratio:320/260;margin:0 auto}
+.val-change-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.val-change-card{background:#f7f5ef;border-radius:6px;padding:10px 14px}
+.val-change-label{font-size:11px;font-weight:700;margin-bottom:4px}
+.val-change-scores{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.val-change-arrow{font-size:16px;font-weight:700}
+.val-change-arrow.up{color:#1a7a4a}.val-change-arrow.dn{color:#c0392b}.val-change-arrow.neu{color:#8888aa}
+.val-change-comment{font-size:11px;color:var(--mid);line-height:1.6;margin-top:4px}
+.note-box.concern{background:#fef6e4;border-color:#b7791f;color:#7a4f0a}
+.note-box.positive{background:#edf7f1;border-color:#1a7a4a;color:#0d5530}
+.note-box.neutral{background:#f0ede6;border-color:var(--ink);color:var(--ink)}
+.chart-block{margin:18px 0 4px}
+.chart-title{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:10px;letter-spacing:.03em}
+.chart-sub{font-size:11px;color:var(--light);margin-bottom:8px}
+.action-bar{display:flex;gap:10px;padding:14px 0 0;justify-content:flex-end}
+.action-btn{padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;font-family:'Noto Sans JP',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--paper);color:var(--ink);transition:all .15s;display:flex;align-items:center;gap:5px}
+.action-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.action-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* セッション数バッジ */
+.session-badge{background:rgba(255,255,255,0.12);border-radius:5px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,0.6);text-align:center}
+.session-badge span{font-size:18px;font-weight:700;color:#fff;display:block}
+
+@media print{
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .input-panel, .action-bar { display: none !important; }
+  .app-wrapper { display: block !important; width: 100% !important; }
+  .report-panel { padding: 0 !important; background: #fff !important; }
+  #report-output { display: block !important; }
+  .report-document { box-shadow: none !important; border: none !important; width: 100% !important; }
+
+  /* ヘッダー */
+  .report-header { padding: 5mm 8mm 4mm !important; }
+  .report-main-title { font-size: 16pt !important; }
+  .report-label { font-size: 7pt !important; }
+  .report-meta { font-size: 8pt !important; }
+
+  /* 実施日バー */
+  #compare-bar-section { page-break-inside: avoid !important; break-inside: avoid !important; }
+  #compare-bar-section svg { display: block !important; overflow: visible !important; }
+  #compare-bar-section svg rect { display: block !important; }
+
+  /* スコア変化グラフ（compare-bar）*/
+  .compare-bar { padding: 5mm 8mm !important; background: #f7f5ef !important; border-bottom: 1px solid #d4d0c8 !important; }
+  .compare-title { font-size: 8pt !important; margin-bottom: 3mm !important; }
+  .compare-rows { display: flex !important; flex-direction: column !important; gap: 2mm !important; }
+  .compare-row { display: grid !important; grid-template-columns: 30px 1fr 1fr 50px !important; gap: 5px !important; align-items: center !important; }
+  .compare-key { font-size: 8pt !important; font-weight: 700 !important; }
+
+  /* スコア変化棒グラフ - 印刷時にposition:absoluteが潰れる問題を修正 */
+  .bar-wrap {
+    height: 18px !important;
+    background: #e8e6e0 !important;
+    border-radius: 3px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important;
+  }
+  .bar-prev {
+    display: block !important;
+    height: 100% !important;
+    border-radius: 3px !important;
+    opacity: .35 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+  .bar-curr {
+    display: block !important;
+    height: 100% !important;
+    border-radius: 3px !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    opacity: .85 !important;
+  }
+  .bar-val { font-size: 8pt !important; font-weight: 700 !important; text-align: right !important; }
+  .delta-badge { font-size: 7.5pt !important; font-weight: 700 !important; padding: 1px 5px !important; border-radius: 8px !important; }
+  .delta-up { background: #d4f4e2 !important; color: #1a7a4a !important; }
+  .delta-dn { background: #fde8e8 !important; color: #c0392b !important; }
+  .delta-neu { background: #ebe9e3 !important; color: #4a4a6a !important; }
+  .legend-row { font-size: 7pt !important; margin-top: 2mm !important; }
+
+  /* レポート本文 */
+  .report-body { padding: 4mm 8mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
+  .report-section { padding: 3mm 0 !important; border-bottom: 1px solid #d4d0c8 !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+  .section-num { width: 18px !important; height: 18px !important; font-size: 7pt !important; }
+  .section-title-text { font-size: 9pt !important; }
+  .section-content { padding-left: 6mm !important; font-size: 7pt !important; line-height: 1.55 !important; }
+  .section-content p { margin-bottom: 1mm !important; }
+  .change-item { padding: 2mm 3mm !important; margin-bottom: 1.5mm !important; border-radius: 4px !important; }
+  .change-key { font-size: 7.5pt !important; }
+  .change-text { font-size: 7pt !important; line-height: 1.5 !important; }
+  .note-box { padding: 2mm 3mm !important; font-size: 7pt !important; line-height: 1.5 !important; margin-top: 1.5mm !important; }
+
+  /* Chart.jsグラフ */
+  .chart-block { margin: 2mm 0 1mm !important; page-break-inside: avoid !important; }
+  .chart-title { font-size: 8pt !important; margin-bottom: 1.5mm !important; }
+  canvas { max-width: 100% !important; }
+
+  /* 価値観変化セクション */
+  .values-change-chart-wrap { position: relative !important; height: 180px !important; width: auto !important; aspect-ratio: unset !important; max-width: 220px !important; margin: 0 auto 3mm !important; }
+  #valuesChangeRadarChart { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; }
+  .val-change-grid { grid-template-columns: 1fr 1fr !important; gap: 3px !important; margin-top: 3mm !important; }
+  .val-change-card { padding: 2mm 3mm !important; border-radius: 4px !important; }
+  .val-change-label { font-size: 7pt !important; margin-bottom: 1mm !important; }
+  .val-change-scores { font-size: 7.5pt !important; gap: 4px !important; }
+  .val-change-arrow { font-size: 8pt !important; }
+  .val-change-comment { font-size: 6.5pt !important; line-height: 1.45 !important; margin-top: 1mm !important; }
+}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <!-- LEFT INPUT -->
+  <div class="input-panel">
+    <div class="panel-header">
+      <div class="panel-title">エゴグラム<br>変化分析レポート</div>
+      <div class="panel-sub">Growth Tracking Report</div>
+      <a href="egogram_role_input.html" style="display:inline-block;margin-top:10px;background:rgba(44,122,80,0.25);border:1px solid rgba(44,122,80,0.4);color:#7dd9a8;font-size:11px;padding:5px 12px;border-radius:5px;text-decoration:none;font-weight:700">📋 データ入力フォームへ</a>
+    </div>
+
+    <!-- グループ選択 -->
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:12px 14px">
+      <div class="section-label">グループ</div>
+      <select class="field-input" id="group-select" style="margin-bottom:6px" onchange="onGroupChange(this.value)"></select>
+      <div id="group-note" style="font-size:10px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:8px"></div>
+      <a id="nav-input" href="egogram_role_input.html" style="display:block;text-align:center;background:rgba(44,122,80,0.2);border:1px solid rgba(44,122,80,0.4);color:#7dd9a8;font-size:11px;font-weight:700;padding:6px;border-radius:5px;text-decoration:none">📋 データ入力フォームへ</a>
+    </div>
+
+    <!-- セッション情報 -->
+    <div>
+      <div class="section-label">今回のテスト情報</div>
+      <div class="field-group">
+        <div class="field-row"><div class="field-label">氏名</div><input class="field-input" id="name" type="text" placeholder="例：山田 太郎" oninput="renderHistoryList()"></div>
+        <div class="field-row"><div class="field-label">実施日</div><input class="field-input" id="date" type="date"></div>
+        <div class="field-row"><div class="field-label">メモ（任意）</div><input class="field-input" id="memo" type="text" placeholder="例：異動後 / 研修3ヶ月後"></div>
+        <div class="field-row">
+          <div class="field-label">役職区分（任意）</div>
+          <select class="field-input" id="role">
+            <option value="">— 選択 —</option>
+            <option value="管理職">管理職</option>
+            <option value="一般">一般</option>
+            <option value="若手">若手</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- スコア -->
+    <div>
+      <div class="section-label">今回のスコア（0〜20）</div>
+      <div class="score-items">
+        <div class="score-item">
+          <div class="score-name cp-color">CP <span class="score-desc">批判的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="cp-slider" min="0" max="20" value="10" style="--c:var(--cp)" oninput="syncScore('cp',this.value)">
+            <input type="number" class="score-number" id="cp-num" min="0" max="20" value="10" oninput="syncScore('cp',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name np-color">NP <span class="score-desc">養育的な親の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="np-slider" min="0" max="20" value="10" style="--c:var(--np)" oninput="syncScore('np',this.value)">
+            <input type="number" class="score-number" id="np-num" min="0" max="20" value="10" oninput="syncScore('np',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name a-color">A <span class="score-desc">大人の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="a-slider" min="0" max="20" value="10" style="--c:var(--a)" oninput="syncScore('a',this.value)">
+            <input type="number" class="score-number" id="a-num" min="0" max="20" value="10" oninput="syncScore('a',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name fc-color">FC <span class="score-desc">自由な子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="fc-slider" min="0" max="20" value="10" style="--c:var(--fc)" oninput="syncScore('fc',this.value)">
+            <input type="number" class="score-number" id="fc-num" min="0" max="20" value="10" oninput="syncScore('fc',this.value)">
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-name ac-color">AC <span class="score-desc">順応した子供の心</span></div>
+          <div class="score-controls">
+            <input type="range" class="score-slider" id="ac-slider" min="0" max="20" value="10" style="--c:var(--ac)" oninput="syncScore('ac',this.value)">
+            <input type="number" class="score-number" id="ac-num" min="0" max="20" value="10" oninput="syncScore('ac',this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveAndGenerate()">💾 保存してレポート生成</button>
+
+    <!-- 過去の記録 -->
+    <div>
+      <div class="section-label">過去の記録</div>
+      <div id="session-badge" class="session-badge" style="margin-bottom:8px"><span id="session-count">0</span>回分のデータを保存中</div>
+      <div id="history-list" class="history-list"><div class="empty-history">まだ記録がありません</div></div>
+    </div>
+
+    <button class="btn btn-danger" onclick="clearAllData()">🗑 全データを削除する</button>
+  </div>
+
+  <!-- RIGHT REPORT -->
+  <div class="report-panel">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📈</div>
+      <div class="empty-title">スコアを入力して保存してください</div>
+      <div class="empty-desc">
+        <a href="egogram_role_input.html" style="display:inline-block;margin-bottom:12px;background:#1a1a2e;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:700">📋 データ入力フォームへ</a><br>
+        入力フォームでスコアを保存するとここに自動連携されます。<br><br>
+        グループを選択後、氏名を入力・スコアを確認して「保存してレポート生成」を押してください。<br>2回目以降から変化レポートが表示されます。
+      </div>
+    </div>
+    <div id="report-output">
+      <div class="report-document" id="report-doc">
+        <div class="report-header">
+          <div>
+            <div class="report-label">Egogram Growth Tracking Report</div>
+            <div class="report-main-title">エゴグラム 変化分析レポート（役職別）</div>
+          </div>
+          <div class="report-meta" id="report-meta"></div>
+        </div>
+        <div id="compare-bar-section"></div>
+        <div class="report-body" id="report-body"></div>
+      </div>
+      <div class="action-bar">
+        <button class="action-btn primary" onclick="doPrint()">🖨️ 印刷／PDFで保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 変化の意味マスタ =====
+var CHANGE_MEANING = {
+  CP: {
+    up:   {meaning:'責任感・価値観・基準への意識が高まっています。自分の「こうあるべき」という軸が強くなった可能性があります。',
+           growth:'ルールや品質へのこだわりが増し、仕事や人間関係での誠実さが高まっています。',
+           concern: function(d){ return d>=4 ? '批判的になりすぎたり、他者に厳しくなりすぎていないか確認が必要です。「〜すべき」という言葉が増えていないか振り返りましょう。' : null; }},
+    dn:   {meaning:'以前より責任感・厳しさへの意識が和らいでいます。柔軟になった可能性もありますが、基準が下がっていることも考えられます。',
+           growth:'こだわりすぎず、状況に応じた柔軟な判断ができるようになっているかもしれません。',
+           concern: function(d){ return d<=-4 ? 'ルールや責任感が低下している可能性があります。「まあいいか」で流してしまっていないか振り返りましょう。' : null; }},
+    neu:  {meaning:'責任感・価値観のバランスは安定しています。', growth:'', concern:function(){return null;}}
+  },
+  NP: {
+    up:   {meaning:'思いやりや他者への関心・共感力が高まっています。周囲をサポートしたい気持ちが強くなっている状態です。',
+           growth:'人間関係が温かくなり、周囲からの信頼が増しているかもしれません。',
+           concern: function(d){ return d>=4 ? '優しさが過剰になり、自分を後回しにしすぎていないか注意が必要です。抱え込みや疲弊のサインかもしれません。' : null; }},
+    dn:   {meaning:'他者への関心・共感が以前より低下しています。余裕がなくなっている可能性があります。',
+           growth:'必要な場面での適切な距離感を保てるようになっているかもしれません。',
+           concern: function(d){ return d<=-3 ? '忙しさやストレスから、周囲への配慮が届きにくくなっているサインかもしれません。自分の状態を確認してみましょう。' : null; }},
+    neu:  {meaning:'思いやりのバランスは安定しています。', growth:'', concern:function(){return null;}}
+  },
+  A: {
+    up:   {meaning:'冷静さ・合理的な判断力が高まっています。状況を客観的に見る力が育っている状態です。',
+           growth:'PDCAを回す力・全体像を見て判断する力が伸びています。問題解決の質が上がっているかもしれません。',
+           concern: function(d){ return d>=4 ? '計算高くなりすぎたり、感情が置き去りになっていないか確認しましょう。' : null; }},
+    dn:   {meaning:'冷静さや論理的思考が以前より低下しています。感情的になりやすい状態かもしれません。',
+           growth:'',
+           concern: function(d){ return d<=-3 ? '状況判断が乱れやすくなっているサインです。睡眠・休息が十分に取れているか確認してみましょう。' : null; }},
+    neu:  {meaning:'冷静さ・合理性のバランスは安定しています。', growth:'', concern:function(){return null;}}
+  },
+  FC: {
+    up:   {meaning:'自由な感情表現・好奇心・自己肯定感が高まっています。のびのびとした状態になっていることを示しています。',
+           growth:'創造性・積極性・自発的な行動力が育っています。仕事や生活に活力が増しているかもしれません。',
+           concern: function(d){ return d>=5 ? '衝動的になったり、周囲への配慮が薄れていないか確認が必要です。' : null; }},
+    dn:   {meaning:'自由な感情表現・活力が以前より低下しています。抑圧や疲弊のサインである可能性があります。',
+           growth:'',
+           concern: function(d){ return d<=-3 ? '無気力・閉塞感・楽しさの喪失が起きているかもしれません。ストレスや環境の変化を振り返りましょう。これはストレス蓄積の重要なサインです。' : null; }},
+    neu:  {meaning:'自由な感情表現のバランスは安定しています。', growth:'', concern:function(){return null;}}
+  },
+  AC: {
+    up:   {meaning:'周囲への適応・我慢・協調性への意識が高まっています。気を遣いすぎている状態かもしれません。',
+           growth:'',
+           concern: function(d){ return d>=3 ? '我慢・抑圧が増している可能性があります。本音を言えていない状況やストレスが蓄積しているサインかもしれません。特に注意が必要です。' : null; }},
+    dn:   {meaning:'以前より自分の感情や意見を表に出せるようになっています。我慢が減ってきたことを示しています。',
+           growth:'自己主張・自己表現が増し、自分らしさを発揮できるようになってきているかもしれません。',
+           concern: function(d){ return d<=-5 ? '急激な変化は、感情が一気に解放されている状態の可能性があります。反動的な言動が出ていないか確認しましょう。' : null; }},
+    neu:  {meaning:'順応性・我慢のバランスは安定しています。', growth:'', concern:function(){return null;}}
+  }
+};
+
+// ===== 役職別変化分析マスター =====
+var ROLE_CHANGE_META = {
+  '管理職': { color: '#1a3a7a', bgColor: '#dce9f7', label: '管理職' },
+  '一般':   { color: '#1a5c34', bgColor: '#e8f5e9', label: '一般' },
+  '若手':   { color: '#7a4f0a', bgColor: '#fef6e4', label: '若手' }
+};
+
+// ===== 価値観変化セクション =====
+var VAL_CHANGE_META = {
+  a: {
+    name: '愛・所属の欲求', color: '#ad1457',
+    up:   '人間関係が良好になっている、または愛社精神が高まっているサインです。職場への帰属意識が上がっています。',
+    dn:   '人間関係に何らかの問題が生じている、または愛社精神が低下しているサインです。職場環境や対人関係を確認しましょう。',
+    neu:  '人間関係・愛社精神に大きな変化はありません。'
+  },
+  b: {
+    name: '達成の欲求', color: '#283593',
+    up:   '向上心が高まっています。上司からの目標設定やチャレンジできる環境が後押ししている可能性があります。',
+    dn:   '向上心・やる気が低下しているサインです。現在の仕事に不満や物足りなさを感じている可能性があります。面談で確認しましょう。',
+    neu:  '達成意欲に大きな変化はありません。'
+  },
+  c: {
+    name: '自由の欲求', color: '#00695c',
+    up:   '自由に任せてもらえている状況を反映しています。ただしスコアが非常に高い場合、現在の環境から逃げたい気持ちの表れである可能性も。',
+    dn:   '裁量の制限やミスへの恐怖感、管理が強い環境にストレスを感じているサインです。「守りに入っている」状態かもしれません。',
+    neu:  '自由裁量の感覚に大きな変化はありません。'
+  },
+  d: {
+    name: '楽しみの欲求', color: '#bf360c',
+    up:   'プライベートが充実している、または元気な状態のサインです。オン・オフの切り替えができています。',
+    dn:   '疲労・生活リズムの乱れが考えられます。「バタンキュー」状態になっていないか、体調面も含めて確認しましょう。',
+    neu:  '元気度・余暇充実度に大きな変化はありません。'
+  },
+  e: {
+    name: '金銭の欲求', color: '#827717',
+    up:   '欲しいものがある・お金への関心が高まっています。ただし転職を検討している可能性もあるため、キャリア面の対話を持つことを推奨します。',
+    dn:   '欲しいものがない・お金への欲求が薄れている状態です。疲弊や退職意向のサインである可能性があります。早めのフォローを推奨します。',
+    neu:  '金銭への関心に大きな変化はありません。'
+  }
+};
+
+function buildValuesChangeSection(prevVals, currVals, sectionNum) {
+  var keys = ['a','b','c','d','e'];
+  var html = '<div class="report-section">';
+  html += '<div class="section-header"><div class="section-num default">'+sectionNum+'</div><div class="section-title-text">価値観の変化（基本的欲求）</div></div>';
+  html += '<div class="section-content">';
+  html += '<p style="margin-bottom:12px">前回・今回の価値観テストスコアの変化から、職場環境や意欲の変化を読み取ります。</p>';
+
+  // レーダーチャート
+  html += '<div class="chart-block" style="margin-bottom:16px">';
+  html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:6px;font-size:11px;color:var(--mid)">';
+  html += '<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:20px;height:2px;background:#8888aa;border-top:2px dashed #8888aa"></span>前回</span>';
+  html += '<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:20px;height:2px;background:#1a1a2e"></span>今回</span>';
+  html += '</div>';
+  html += '<div class="values-change-chart-wrap"><canvas id="valuesChangeRadarChart"></canvas></div>';
+  html += '</div>';
+
+  // 軸別カード
+  html += '<div class="val-change-grid">';
+  keys.forEach(function(k){
+    var m = VAL_CHANGE_META[k];
+    var prev = prevVals[k]||0;
+    var curr = currVals[k]||0;
+    var d = Math.round((curr - prev) * 10) / 10;
+    var cls = d > 0 ? 'up' : d < 0 ? 'dn' : 'neu';
+    var arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+    var comment = d >= 1 ? m.up : d <= -1 ? m.dn : m.neu;
+    var dStr = d !== 0 ? '(' + (d > 0 ? '+' : '') + d.toFixed(1) + ')' : '';
+    html += '<div class="val-change-card">';
+    html += '<div class="val-change-label" style="color:'+m.color+'">'+k.toUpperCase()+' '+m.name+'</div>';
+    html += '<div class="val-change-scores">';
+    html += '<span style="color:#8888aa">'+prev+'</span>';
+    html += '<span class="val-change-arrow '+cls+'">'+arrow+dStr+'</span>';
+    html += '<span style="color:'+m.color+'">'+curr+'</span>';
+    html += '</div>';
+    html += '<div class="val-change-comment">'+comment+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '</div></div>';
+  return html;
+}
+
+function buildRoleChangeSection(role, deltas, sectionNum) {
+  var R = ROLE_CHANGE_META[role];
+  if (!R) return '';
+  var items = [];
+
+  if (role === '管理職') {
+    // ── 単発パターン ──
+    if (deltas.CP >= 3)  items.push({t:'warn',  s:'CPが上昇しています。管理職として規律・品質意識が高まっている一方、部下に「〜すべき」という言葉が増えていないか確認してください。意図せずプレッシャーを与えている可能性があります。'});
+    if (deltas.CP <= -3) items.push({t:'info',  s:'CPが低下しています。柔軟な姿勢になっている一方、チームのルール・基準が緩みすぎていないかも合わせて確認してください。'});
+    if (deltas.NP >= 3)  items.push({t:'info',  s:'NPが上昇しています。部下へのサポート意識が高まっている状態です。ただし「世話焼きすぎ」による自身の疲弊にも注意してください。'});
+    if (deltas.NP <= -3) items.push({t:'warn',  s:'NPが低下しています。余裕がなくなり、部下への関心が届きにくくなっているサインかもしれません。1on1を意識的に増やすことをお勧めします。'});
+    if (deltas.A  >= 3)  items.push({t:'pos',   s:'Aが上昇しています。客観的な判断力・情報整理力が高まっている状態です。データや事実に基づいた意思決定ができるタイミングです。ただし、論理だけで動くと部下の感情面が見えにくくなることがあるため、「数字の裏にある人の状態」にも目を向けてください。'});
+    if (deltas.A  <= -3) items.push({t:'warn',  s:'Aが低下しています。疲労・過負荷によって冷静な判断力が落ちているサインの可能性があります。重要な意思決定の前に休息を取ることを検討してください。'});
+    if (deltas.FC >= 3)  items.push({t:'pos',   s:'FCが上昇しています。心に余裕が生まれ、チームに活気をもたらせる状態です。管理職のFCが高まるとチームの雰囲気も明るくなりやすいです。この状態を活かして、部下との対話や新しい取り組みに積極的に関わってみましょう。'});
+    if (deltas.FC <= -3) items.push({t:'warn',  s:'FCが低下しています。仕事の楽しさ・余裕を感じにくくなっているサインです。管理職がFCを失うとチームの雰囲気も硬くなりやすいです。意識的にポジティブな場面を作りましょう。'});
+    if (deltas.AC >= 3)  items.push({t:'info',  s:'ACが上昇しています。上位者への気遣いが増している状態です。「言いたいことを我慢している」状態になっていないか振り返ってください。'});
+    if (deltas.AC <= -3) items.push({t:'pos',   s:'ACが低下しています。以前より上位者への遠慮が薄れ、自分の意見を率直に伝えられるようになっています。管理職として適切な主張ができている状態です。ただし、組織の方針や上位者の意図を汲む姿勢も引き続き大切にしてください。'});
+    // ── 複合パターン ──
+    if (deltas.CP >= 3 && deltas.NP <= -2) items.push({t:'alert', s:'【組み合わせ注意】CPが上昇しNPが低下しています。「指摘は増えたが承認が減っている」状態の可能性があります。部下への承認・声かけを意識的に増やしましょう。'});
+    if (deltas.AC >= 3 && deltas.FC <= -2) items.push({t:'alert', s:'【組み合わせ注意】ACが上昇しFCが低下しています。管理職として「本音を言えない・楽しさを感じられない」状態が続いているかもしれません。信頼できる人に話す機会を作ってください。'});
+    if (deltas.A  >= 3 && deltas.NP <= -2) items.push({t:'alert', s:'【組み合わせ注意】Aが上昇しNPが低下しています。論理的な判断は磨かれていますが、部下の感情や状態への関心が薄れているサインです。「数字ではなく、人を見る」時間を意識的に確保しましょう。1on1でスコアや進捗以外の話もしてみてください。'});
+    if (deltas.CP <= -2 && deltas.NP <= -2) items.push({t:'alert', s:'【組み合わせ注意】CPとNPが同時に低下しています。指示・基準の明示も、サポート・承認も、どちらも届きにくくなっている状態です。マネジメントの土台が揺らいでいるサインとして受け止め、業務量の見直しや上位者への相談を検討してください。'});
+    if (deltas.FC >= 3 && deltas.A  >= 3)  items.push({t:'pos',   s:'【良い兆候】FCとAが同時に上昇しています。余裕と判断力が共に高まっているバランスの取れた成長パターンです。チームを巻き込んだ新しい取り組みや、部下の成長を後押しするチャレンジングな機会を積極的に作りましょう。'});
+  } else if (role === '一般') {
+    // ── 単発パターン ──
+    if (deltas.CP >= 3)  items.push({t:'info',  s:'CPが上昇しています。仕事への基準意識や「こうあるべき」という感覚が高まっている状態です。品質への意識が上がっている一方、後輩や同僚への接し方で「なぜできないんだ」という気持ちが表に出ていないか確認してください。'});
+    if (deltas.CP <= -3) items.push({t:'info',  s:'CPが低下しています。以前より柔軟になっている反面、仕事に対するこだわりや積極的な意見表明が少なくなっていないか振り返ってみましょう。受け身の姿勢が続くと、周囲からの評価にも影響することがあります。'});
+    if (deltas.A  >= 3)  items.push({t:'pos',   s:'Aが上昇しています。論理的・客観的な思考力が伸びている状態です。業務や後輩指導でその力を発揮できるタイミングです。'});
+    if (deltas.A  <= -3) items.push({t:'warn',  s:'Aが低下しています。情報整理・冷静な判断がやりにくくなっているサインかもしれません。業務の優先順位を見直してみましょう。'});
+    if (deltas.NP >= 3)  items.push({t:'pos',   s:'NPが上昇しています。後輩・同僚への配慮や関心が高まっている状態です。チームのまとめ役としての力が育っています。'});
+    if (deltas.NP <= -3) items.push({t:'warn',  s:'NPが低下しています。周囲への配慮や気遣いが薄れてきているサインです。余裕がなくなっているときに起きやすいパターンです。後輩や同僚の様子に意識的に目を向け、「最近どう？」と声をかける余白を持つようにしましょう。'});
+    if (deltas.FC >= 3)  items.push({t:'pos',   s:'FCが上昇しています。仕事への活力・やる気が高まっている状態です。新しいことへ積極的に挑戦するエネルギーがあります。'});
+    if (deltas.FC <= -3) items.push({t:'warn',  s:'FCが低下しています。仕事の充実感が低下しているサインです。何がモチベーションを下げているかを振り返ってみましょう。'});
+    if (deltas.AC >= 3)  items.push({t:'warn',  s:'ACが上昇しています。周囲への気遣い・我慢が増している状態です。「言いたいことが言えていない」状況が続いていないか確認してください。'});
+    if (deltas.AC <= -3) items.push({t:'pos',   s:'ACが低下しています。以前より周囲への遠慮が薄れ、自分の意見や感情を率直に出せるようになっています。主体的に動けている状態です。ただし、チームの空気や周囲の状況を読む感度も大切にしながら、積極性を発揮してください。'});
+    // ── 複合パターン ──
+    if (deltas.CP >= 3 && deltas.AC >= 3)  items.push({t:'alert', s:'【組み合わせ注意】CPとACが同時に上昇しています。「高い基準を自分に課しつつ、周囲にも合わせている」完璧主義的な疲弊パターンです。意識的に手を抜く練習をしましょう。'});
+    if (deltas.AC >= 3 && deltas.FC <= -2) items.push({t:'alert', s:'【組み合わせ注意】ACが上昇しFCが低下しています。我慢が増し楽しさが失われているパターンです。意識的に自分の気持ちを表現できる場を持ちましょう。'});
+    if (deltas.A  >= 3 && deltas.FC >= 3)  items.push({t:'pos',   s:'【良い兆候】AとFCが同時に上昇しています。論理的な思考力と仕事への活力が共に高まっている成長パターンです。周囲から頼られる場面も増えているはずです。自信を持って後輩指導やプロジェクトへの貢献に取り組んでみましょう。'});
+    if (deltas.NP >= 3 && deltas.FC >= 3)  items.push({t:'pos',   s:'【良い兆候】NPとFCが同時に上昇しています。周囲への配慮と仕事への意欲が共に高まっている、チームへの貢献度が高い状態です。チームを明るくする存在として、今の状態を大切にしてください。'});
+    if (deltas.CP >= 3 && deltas.NP <= -2) items.push({t:'alert', s:'【組み合わせ注意】CPが上昇しNPが低下しています。「こうすべき」という意識が強まる一方、周囲への配慮が薄れているパターンです。後輩や同僚に対して、指摘だけでなく承認・感謝の言葉も意識的に届けるようにしましょう。'});
+  } else if (role === '若手') {
+    // ── 単発パターン ──
+    if (deltas.CP >= 3)  items.push({t:'pos',   s:'CPが上昇しています。仕事への基準意識や「こうあるべき」という感覚が育ってきています。若手としての成長の表れです。ただし、先輩や上司への意見表明は「伝え方」と「タイミング」を意識すると、主張が受け入れられやすくなります。'});
+    if (deltas.CP <= -3) items.push({t:'info',  s:'CPが低下しています。仕事への基準意識やこだわりが薄れてきているサインかもしれません。「何でもいい」「言われた通りにやればいい」という受け身の姿勢が強まっていないか振り返ってみましょう。'});
+    if (deltas.A  >= 3)  items.push({t:'pos',   s:'Aが上昇しています。「なぜ？」と考える力が伸びている状態です。業務の理解が深まり、自律的な判断ができるようになってきています。'});
+    if (deltas.A  <= -3) items.push({t:'warn',  s:'Aが低下しています。物事を整理して考える力が落ちているサインかもしれません。慣れない仕事量や人間関係のストレスによって思考力が低下している場合があります。「今、何に困っているか」を紙に書き出すところから始めてみましょう。早めに先輩か上司に状況を伝えることも大切です。'});
+    if (deltas.NP >= 3)  items.push({t:'pos',   s:'NPが上昇しています。周囲への関心・思いやりが育っています。後輩を持つ立場や、チームに貢献するポジションが見えてきた状態かもしれません。'});
+    if (deltas.NP <= -3) items.push({t:'warn',  s:'NPが低下しています。周囲への関心や共感が薄れてきているサインです。自分のことで精一杯になり、余裕がなくなっているときに起こりやすいパターンです。チームとの関わりが減っている場合は、小さな雑談や挨拶から関係を温め直してみましょう。'});
+    if (deltas.FC >= 3)  items.push({t:'pos',   s:'FCが上昇しています。仕事への好奇心・モチベーションが高まっている状態です。今の勢いを大切にしてください。'});
+    if (deltas.FC <= -3) items.push({t:'warn',  s:'FCが低下しています。仕事の楽しさを感じにくくなっているサインです。若手のうちにこのサインを見逃さないことが大切です。信頼できる先輩や上司に相談してみましょう。'});
+    if (deltas.AC >= 3)  items.push({t:'warn',  s:'ACが上昇しています。先輩・上司への気遣いや我慢が増している状態です。「報告したいけど忙しそう」「質問したいけど迷惑かな」という遠慮が強まっていないか確認してください。'});
+    if (deltas.AC <= -3) items.push({t:'info',  s:'ACが低下しています。以前より自分の意見や感情を表に出せるようになっています。場の読み違いが起きていないか、周囲の反応も観察しましょう。'});
+    // ── 複合パターン ──
+    if (deltas.A  <= -3 && deltas.FC <= -2) items.push({t:'alert', s:'【組み合わせ注意】AとFCが同時に低下しています。仕事の意味・楽しさを見失っているサインの可能性があります。早めに信頼できる先輩か上司に状況を話してみましょう。'});
+    if (deltas.AC >= 3  && deltas.FC <= -2) items.push({t:'alert', s:'【組み合わせ注意】ACが上昇しFCが低下しています。若手特有の「言えない・我慢する」状態は離職リスクとも関連します。上司・先輩に積極的に話しかけてみましょう。'});
+    if (deltas.CP >= 3  && deltas.AC <= -2) items.push({t:'pos',   s:'【良い兆候】CPが上昇しACが低下しています。自分の意見や基準をしっかり持ちながら、以前より気遣いすぎずに動けるようになっている主体性の成長パターンです。先輩への報告・連絡をしっかり行いながら、この自律性を大切に育ててください。'});
+    if (deltas.A  >= 3  && deltas.FC >= 3)  items.push({t:'pos',   s:'【良い兆候】AとFCが同時に上昇しています。論理的に考える力と仕事への意欲が共に高まっている成長パターンです。新しいことを積極的に吸収できる状態です。先輩への質問や自発的な取り組みに積極的に挑戦してみましょう。'});
+    if (deltas.NP <= -2 && deltas.FC <= -2) items.push({t:'alert', s:'【組み合わせ注意】NPとFCが同時に低下しています。周囲への関心も仕事への意欲も薄れている、疲弊・無気力のサインです。若手のうちにこの状態を放置すると、孤立や離職につながるリスクがあります。信頼できる先輩・上司・同期に早めに状況を話してみましょう。'});
+  }
+
+  if (items.length === 0) {
+    items.push({t:'neutral', s:'役職（'+role+'）の観点から、今回の変化パターンに特に注目すべき懸念は見られません。安定した状態を維持できています。'});
+  }
+
+  var typeStyle = {
+    pos:     {bg:'#edf7f1', bd:'#2c7a50', cl:'#1e5c3a'},
+    warn:    {bg:'#fef6e4', bd:'#b7791f', cl:'#7a4f0a'},
+    alert:   {bg:'#fde8e8', bd:'#c0392b', cl:'#8b1a1a'},
+    info:    {bg:'#e6f1fb', bd:'#2c5282', cl:'#1a3a6b'},
+    neutral: {bg:'#f0ede6', bd:'#8888aa', cl:'#3a3a5a'}
+  };
+
+  var html = '<div class="report-section">';
+  html += '<div class="section-header">';
+  html += '<div class="section-num" style="background:'+R.color+'">'+sectionNum+'</div>';
+  html += '<div class="section-title-text">【'+R.label+'】役職別・変化の読み方</div>';
+  html += '</div>';
+  html += '<div class="section-content">';
+  items.forEach(function(item) {
+    var ts = typeStyle[item.t] || typeStyle.neutral;
+    html += '<div style="border-left:3px solid '+ts.bd+';background:'+ts.bg+';color:'+ts.cl+';padding:10px 14px;border-radius:0 5px 5px 0;margin-bottom:8px;font-size:13px;line-height:1.8">'+item.s+'</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// ===== グループ管理（sessionStorage + URLパラメータ方式） =====
+var GROUP_LIST_KEY   = 'egogram_role_groups_v1';
+var SESSION_GROUP_KEY = 'egogram_role_current_group';
+var currentGroup     = '';
+var STORAGE_KEY      = 'egogram_role_history_v1';
+
+function getGroupKey(g){ return g ? 'egogram_role_group_'+g : 'egogram_role_history_v1'; }
+function loadGroups(){ try{return JSON.parse(localStorage.getItem(GROUP_LIST_KEY))||[];}catch(e){return[];} }
+
+function getCurrentGroup(){
+  var urlP = new URLSearchParams(window.location.search);
+  var urlG = urlP.get('group');
+  if(urlG !== null) return urlG;
+  return sessionStorage.getItem(SESSION_GROUP_KEY) || '';
+}
+
+function setGroup(g){
+  currentGroup = g;
+  STORAGE_KEY  = getGroupKey(g);
+  if(g){ sessionStorage.setItem(SESSION_GROUP_KEY, g); }
+  else { sessionStorage.removeItem(SESSION_GROUP_KEY); }
+  var newUrl = window.location.pathname + (g ? '?group='+encodeURIComponent(g) : '');
+  history.replaceState(null, '', newUrl);
+  var param = g ? '?group='+encodeURIComponent(g) : '';
+  var navInput = document.getElementById('nav-input');
+  if(navInput) navInput.href = 'egogram_role_input.html'+param;
+  var note = document.getElementById('group-note');
+  if(note) note.textContent = g ? '「'+g+'」のデータを表示中' : 'グループなし（共通データ）';
+  renderGroupSelect();
+  renderHistoryList();
+  document.getElementById('empty-state').style.display='flex';
+  document.getElementById('report-output').style.display='none';
+}
+
+function renderGroupSelect(){
+  var groups = loadGroups();
+  var sel = document.getElementById('group-select');
+  if(!sel) return;
+  sel.innerHTML =
+    '<option value=""'+(currentGroup===''?' selected':'')+'>── グループなし ──</option>'+
+    groups.map(function(g){
+      return '<option value="'+g+'"'+(g===currentGroup?' selected':'')+'>'+g+'</option>';
+    }).join('');
+}
+
+function onGroupChange(val){ setGroup(val); }
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { return []; }
+}
+function saveHistory(h) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); }
+  catch(e) { alert('データの保存に失敗しました。'); }
+}
+
+// 初期化
+setGroup(getCurrentGroup());
+
+// ===== UI =====
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+function syncScore(key, val) {
+  val = Math.min(20, Math.max(0, parseInt(val)||0));
+  document.getElementById(key+'-slider').value = val;
+  document.getElementById(key+'-num').value = val;
+  document.getElementById(key+'-slider').style.setProperty('--val',(val/20*100)+'%');
+}
+['cp','np','a','fc','ac'].forEach(function(k){ document.getElementById(k+'-slider').style.setProperty('--val','50%'); });
+
+function getScores() {
+  return {
+    cp:parseInt(document.getElementById('cp-num').value)||0,
+    np:parseInt(document.getElementById('np-num').value)||0,
+    a: parseInt(document.getElementById('a-num').value)||0,
+    fc:parseInt(document.getElementById('fc-num').value)||0,
+    ac:parseInt(document.getElementById('ac-num').value)||0
+  };
+}
+
+function renderHistoryList() {
+  var h = loadHistory();
+  var name = document.getElementById('name').value.trim();
+  var filtered = name ? h.filter(function(s){ return s.name===name; }) : h;
+
+  document.getElementById('session-count').textContent = filtered.length;
+  var list = document.getElementById('history-list');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-history">まだ記録がありません</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.slice().reverse().map(function(s, i) {
+    var realIdx = filtered.length - 1 - i;
+    return '<div class="history-item" onclick="loadSession('+realIdx+')">' +
+      '<div>' +
+        '<div class="history-date">第'+(realIdx+1)+'回　'+s.date+(s.memo?' — '+s.memo:'')+'</div>' +
+        '<div class="history-scores">CP:'+s.scores.cp+' NP:'+s.scores.np+' A:'+s.scores.a+' FC:'+s.scores.fc+' AC:'+s.scores.ac+'</div>' +
+      '</div>' +
+      '<span class="history-del" onclick="event.stopPropagation();deleteSession('+realIdx+')">削除</span>' +
+    '</div>';
+  }).join('');
+}
+
+function loadSession(idx) {
+  var h = loadHistory();
+  var name = document.getElementById('name').value.trim();
+  var filtered = name ? h.filter(function(s){ return s.name===name; }) : h;
+  if (!filtered[idx]) return;
+  var s = filtered[idx];
+  document.getElementById('date').value = s.date;
+  document.getElementById('memo').value = s.memo || '';
+  if (document.getElementById('role')) document.getElementById('role').value = s.role || '';
+  ['cp','np','a','fc','ac'].forEach(function(k){ syncScore(k, s.scores[k]); });
+}
+
+function deleteSession(idx) {
+  if (!confirm('この記録を削除しますか？')) return;
+  var h = loadHistory();
+  var name = document.getElementById('name').value.trim();
+  var toDelete = name ? h.filter(function(s){ return s.name===name; })[idx] : h[idx];
+  if (!toDelete) return;
+  var newH = h.filter(function(s){ return s !== toDelete; });
+  saveHistory(newH);
+  renderHistoryList();
+}
+
+function clearAllData() {
+  if (!confirm('保存済みの全データを削除します。この操作は取り消せません。')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistoryList();
+  document.getElementById('empty-state').style.display='flex';
+  document.getElementById('report-output').style.display='none';
+}
+
+// ===== 保存＆レポート生成 =====
+function saveAndGenerate() {
+  var name = document.getElementById('name').value.trim();
+  var date = document.getElementById('date').value;
+  var memo = document.getElementById('memo').value.trim();
+  var role = document.getElementById('role') ? document.getElementById('role').value : '';
+  var scores = getScores();
+
+  if (!name) { alert('氏名を入力してください。'); return; }
+  if (!date) { alert('実施日を入力してください。'); return; }
+
+  var h = loadHistory();
+  var dupIdx = h.findIndex(function(s){ return s.name===name && s.date===date; });
+  var session = { name:name, date:date, memo:memo, role:role, scores:scores, savedAt: new Date().toISOString() };
+  if(dupIdx >= 0){ h[dupIdx] = session; } else { h.push(session); }
+  saveHistory(h);
+  renderHistoryList();
+
+  var personHistory = h.filter(function(s){ return s.name===name; });
+  generateReport(personHistory);
+}
+
+// ===== レポート生成 =====
+function generateReport(history) {
+  var curr = history[history.length-1];
+  var prev = history.length >= 2 ? history[history.length-2] : null;
+
+  document.getElementById('empty-state').style.display='none';
+  var out = document.getElementById('report-output');
+  out.style.display='flex'; out.style.flexDirection='column';
+
+  // メタ
+  var sessionNum = history.length;
+  // ヘッダー：直近・前回の実施日を明示
+  var dateInfoHtml = prev
+    ? '前回：<span style="font-weight:600;color:rgba(255,255,255,0.85)">'+formatDate(prev.date)+'</span>'
+      +(prev.memo?'<span style="font-size:10px;opacity:.55"> ('+prev.memo+')</span>':'')
+      +'<br>直近：<span style="font-weight:600;color:#fff">'+formatDate(curr.date)+'</span>'
+      +(curr.memo?'<span style="font-size:10px;opacity:.55"> ('+curr.memo+')</span>':'')
+    : '直近：<span style="font-weight:600;color:#fff">'+formatDate(curr.date)+'</span>'
+      +(curr.memo?'<span style="font-size:10px;opacity:.55"> ('+curr.memo+')</span>':'');
+
+  var currRole = curr.role || '';
+  var roleBadgeHtml = currRole ? ' <span style="display:inline-block;background:'+(currRole==='管理職'?'#dce9f7':currRole==='若手'?'#fef6e4':'#e8f5e9')+';color:'+(currRole==='管理職'?'#1a3a7a':currRole==='若手'?'#7a4f0a':'#1a5c34')+';border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700">'+currRole+'</span>' : '';
+  document.getElementById('report-meta').innerHTML =
+    '<strong>'+curr.name+'</strong>'+roleBadgeHtml+'<br>'+
+    dateInfoHtml+
+    '<br><span style="font-size:11px;opacity:.5">第'+sessionNum+'回目のテスト</span>';
+
+  if (!prev) {
+    // 初回：比較なし
+    document.getElementById('compare-bar-section').innerHTML =
+      '<div style="padding:20px 40px;background:#f7f5ef;border-bottom:1px solid var(--border)">' +
+      '<div style="font-size:13px;color:var(--light);text-align:center;padding:8px 0">📊 これが最初の記録です。次回テスト後に変化レポートが表示されます。</div>' +
+      '</div>';
+    document.getElementById('report-body').innerHTML =
+      '<div class="report-section"><div class="section-header"><div class="section-num default">1</div><div class="section-title-text">初回スコアの記録</div></div>' +
+      '<div class="section-content"><p>CP:'+curr.scores.cp+' / NP:'+curr.scores.np+' / A:'+curr.scores.a+' / FC:'+curr.scores.fc+' / AC:'+curr.scores.ac+'</p>' +
+      '<p>合計エネルギー：'+(curr.scores.cp+curr.scores.np+curr.scores.a+curr.scores.fc+curr.scores.ac)+'点</p>' +
+      '<div class="note-box neutral">初回テストのスコアとして記録しました。次回のテスト後に、今回との変化が詳しく分析されます。</div>' +
+      '</div></div>';
+    return;
+  }
+
+  // 変化計算
+  var keys = ['CP','NP','A','FC','AC'];
+  var keyMap = {CP:'cp',NP:'np',A:'a',FC:'fc',AC:'ac'};
+  var colors = {CP:'#c0392b',NP:'#2c7a50',A:'#2c5282',FC:'#b7791f',AC:'#6b46a0'};
+  var deltas = {};
+  keys.forEach(function(k){ deltas[k] = curr.scores[keyMap[k]] - prev.scores[keyMap[k]]; });
+  var totalDelta = (curr.scores.cp+curr.scores.np+curr.scores.a+curr.scores.fc+curr.scores.ac) -
+                   (prev.scores.cp+prev.scores.np+prev.scores.a+prev.scores.fc+prev.scores.ac);
+
+  // ---- 実施日情報バー（比較バーの直上）----
+  var dateBar = '<div style="padding:10px 40px;background:#f0ede6;border-bottom:1px solid var(--border);display:flex;gap:28px;align-items:center;flex-wrap:wrap">';
+  dateBar += '<div style="display:flex;align-items:center;gap:8px">';
+  dateBar += '<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8888aa">前回</span>';
+  dateBar += '<span style="font-size:13px;font-weight:700;color:var(--ink)">'+formatDate(prev.date)+'</span>';
+  if(prev.memo) dateBar += '<span style="font-size:11px;color:var(--light)">('+prev.memo+')</span>';
+  dateBar += '<span style="font-size:11px;color:var(--light)">第'+(history.length-1)+'回</span>';
+  dateBar += '</div>';
+  dateBar += '<div style="color:#d4d0c8;font-size:16px">→</div>';
+  dateBar += '<div style="display:flex;align-items:center;gap:8px">';
+  dateBar += '<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#2c7a50">直近</span>';
+  dateBar += '<span style="font-size:13px;font-weight:700;color:var(--ink)">'+formatDate(curr.date)+'</span>';
+  if(curr.memo) dateBar += '<span style="font-size:11px;color:var(--light)">('+curr.memo+')</span>';
+  dateBar += '<span style="font-size:11px;color:var(--light)">第'+history.length+'回</span>';
+  dateBar += '</div>';
+  // 間隔日数
+  var daysDiff = Math.round((new Date(curr.date)-new Date(prev.date))/(1000*60*60*24));
+  if(daysDiff > 0) dateBar += '<div style="margin-left:auto;font-size:11px;color:var(--light)">実施間隔：'+daysDiff+'日</div>';
+  dateBar += '</div>';
+
+  // ---- 比較バー ----
+  var barHtml = dateBar + '<div class="compare-bar"><div class="compare-title">スコア変化（前回比）</div><div class="compare-rows">';
+  keys.forEach(function(k) {
+    var kl = keyMap[k];
+    var prev_v = prev.scores[kl];
+    var curr_v = curr.scores[kl];
+    var d = deltas[k];
+    var dir = d > 0 ? 'up' : d < 0 ? 'dn' : 'neu';
+    var dLabel = d > 0 ? '▲ +'+d : d < 0 ? '▼ '+d : '— 0';
+    var badgeClass = dir==='up'?'delta-up':dir==='dn'?'delta-dn':'delta-neu';
+    barHtml +=
+      '<div style="margin-bottom:10px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
+          '<span style="font-weight:700;font-size:12px;color:'+colors[k]+'">'+k+'</span>'+
+          '<span style="font-size:10px;color:#8888aa">前回 '+prev_v+' → 今回 '+curr_v+'</span>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<span style="font-weight:700;font-size:13px;">'+curr_v+'</span>'+
+            '<span class="delta-badge '+badgeClass+'">'+dLabel+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div style="width:100%;height:8px;background:#e8e6e0;border-radius:4px;margin-bottom:2px;overflow:hidden;">'+
+          '<div style="width:'+(prev_v/20*100).toFixed(1)+'%;height:100%;background:'+colors[k]+';opacity:0.4;"></div>'+
+        '</div>'+
+        '<div style="width:100%;height:8px;background:#e8e6e0;border-radius:4px;overflow:hidden;">'+
+          '<div style="width:'+(curr_v/20*100).toFixed(1)+'%;height:100%;background:'+colors[k]+';opacity:0.9;"></div>'+
+        '</div>'+
+      '</div>';
+  });
+  barHtml += '</div>';
+  var totalDir = totalDelta>0?'▲ +':totalDelta<0?'▼ ':'— ';
+  var totalColor = totalDelta>0?'#1a7a4a':totalDelta<0?'#c0392b':'#8888aa';
+  barHtml += '<div style="margin-top:12px;font-size:12px;color:var(--light)">'+
+    '合計エネルギー：前回 '+(curr.scores.cp+curr.scores.np+curr.scores.a+curr.scores.fc+curr.scores.ac-totalDelta)+
+    '点 → 今回 '+(curr.scores.cp+curr.scores.np+curr.scores.a+curr.scores.fc+curr.scores.ac)+
+    '点　<span style="font-weight:700;color:'+totalColor+'">'+totalDir+Math.abs(totalDelta)+'点</span></div>';
+  barHtml += '<div class="legend-row"><span><span class="legend-dot" style="background:#d4d0c8"></span>前回（薄色）</span><span><span class="legend-dot" style="background:#1a1a2e"></span>今回（濃色）</span></div>';
+  barHtml += '</div>';
+  document.getElementById('compare-bar-section').innerHTML = barHtml;
+
+  // ---- 本文セクション ----
+  var body = '';
+
+  // セクション1: 各スコア変化の意味
+  body += '<div class="report-section">';
+  body += '<div class="section-header"><div class="section-num default">1</div><div class="section-title-text">前回からのスコア変化と意味</div></div>';
+  body += '<div class="section-content">';
+  keys.forEach(function(k) {
+    var d = deltas[k];
+    var dir = Math.abs(d) <= 1 ? 'neu' : d > 0 ? 'up' : 'dn';
+    var M = CHANGE_MEANING[k][dir];
+    if (!M) return;
+    var dStr = d > 0 ? '+'+d : ''+d;
+    body +=
+      '<div class="change-item '+dir+'">'+
+        '<div class="change-key '+dir+'">'+k+'<br><small style="font-size:10px;font-weight:400">('+dStr+')</small></div>'+
+        '<div class="change-text">'+M.meaning+'</div>'+
+      '</div>';
+  });
+  body += '</div></div>';
+
+  // セクション2: 推測される成長
+  var growthItems = [];
+  keys.forEach(function(k) {
+    var d = deltas[k];
+    var dir = Math.abs(d) <= 1 ? 'neu' : d > 0 ? 'up' : 'dn';
+    var M = CHANGE_MEANING[k][dir];
+    if (M && M.growth) growthItems.push({k:k, text:M.growth});
+  });
+
+  // 全体変化の総合評価
+  var positiveKeys = keys.filter(function(k){ return deltas[k] > 1; });
+  var negativeKeys = keys.filter(function(k){ return deltas[k] < -1; });
+
+  body += '<div class="report-section">';
+  body += '<div class="section-header"><div class="section-num green">2</div><div class="section-title-text">推測される成長・変化の意味</div></div>';
+  body += '<div class="section-content">';
+
+  if (growthItems.length > 0) {
+    growthItems.forEach(function(g) {
+      if (g.text) body += '<p><strong style="color:'+{CP:'#c0392b',NP:'#2c7a50',A:'#2c5282',FC:'#b7791f',AC:'#6b46a0'}[g.k]+'">'+g.k+'の変化：</strong>'+g.text+'</p>';
+    });
+  }
+
+  // 総合コメント
+  if (positiveKeys.length > 0 && negativeKeys.length === 0) {
+    body += '<div class="note-box positive">全体的に自我エネルギーが高まる方向に変化しています。成長や環境への適応が進んでいる可能性があります。</div>';
+  } else if (negativeKeys.length > positiveKeys.length) {
+    body += '<div class="note-box concern">複数の自我状態が低下しています。疲弊や抑圧が起きていないか、生活・仕事環境を振り返ることをお勧めします。</div>';
+  } else if (positiveKeys.length === 0 && negativeKeys.length === 0) {
+    body += '<div class="note-box neutral">大きな変化は見られません。安定した状態を維持できています。</div>';
+  } else {
+    body += '<div class="note-box neutral">一部のスコアが上昇し、一部が低下しています。どの自我状態が変化したかを踏まえて、現在の環境や状況を振り返ってみましょう。</div>';
+  }
+  body += '</div></div>';
+
+  // セクション3: 懸念事項
+  var concerns = [];
+  keys.forEach(function(k) {
+    var d = deltas[k];
+    var dir = Math.abs(d) <= 1 ? 'neu' : d > 0 ? 'up' : 'dn';
+    var M = CHANGE_MEANING[k][dir];
+    if (M && M.concern) {
+      var c = M.concern(d);
+      if (c) concerns.push({k:k, text:c, d:d});
+    }
+  });
+
+  // AC上昇＋FC低下の複合チェック
+  if (deltas['AC'] >= 2 && deltas['FC'] <= -2) {
+    concerns.push({k:'複合', text:'ACが上昇しFCが低下しています。自己抑圧・ストレス蓄積の典型的なパターンです。「我慢が増え、楽しさが失われている」状態の可能性が高く、特に注意が必要です。信頼できる人に話す機会を作ってください。', d:0});
+  }
+  // NP低下＋A低下の複合チェック
+  if (deltas['NP'] <= -2 && deltas['A'] <= -2) {
+    concerns.push({k:'複合', text:'NPとAが同時に低下しています。余裕がなくなり、判断力も低下している可能性があります。休息を優先しましょう。', d:0});
+  }
+
+  body += '<div class="report-section">';
+  body += '<div class="section-header"><div class="section-num red">3</div><div class="section-title-text">懸念事項（ストレス・環境変化のサイン）</div></div>';
+  body += '<div class="section-content">';
+
+  if (concerns.length === 0) {
+    body += '<div class="note-box positive">今回の変化パターンに、特筆すべき懸念事項は見られません。引き続き現在の状態を観察していきましょう。</div>';
+  } else {
+    concerns.forEach(function(c) {
+      var col = c.k==='複合'?'#92700a':({CP:'#c0392b',NP:'#2c7a50',A:'#2c5282',FC:'#b7791f',AC:'#6b46a0'}[c.k]||'#92700a');
+      body +=
+        '<div class="note-box concern" style="margin-bottom:8px">'+
+          '<strong style="display:block;margin-bottom:4px;color:'+col+'">⚠ '+c.k+(c.k!=='複合'?'の変化':'')+'</strong>'+
+          c.text+
+        '</div>';
+    });
+  }
+  body += '</div></div>';
+
+  // セクション4: 推移グラフ（全回分）
+  if (history.length >= 2) {
+    body += '<div class="report-section">';
+    body += '<div class="section-header"><div class="section-num gold">4</div><div class="section-title-text">スコア推移グラフ</div></div>';
+    body += '<div class="section-content">';
+    body += '<div class="chart-block"><div class="chart-title">全'+history.length+'回の推移</div>';
+    body += '<div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div></div>';
+    body += '</div></div>';
+  }
+
+  // セクション5: 面談・活用のヒント
+  body += '<div class="report-section">';
+  body += '<div class="section-header"><div class="section-num default">5</div><div class="section-title-text">面談・活用のヒント</div></div>';
+  body += '<div class="section-content">';
+
+  var hints = [];
+  if (concerns.length > 0) hints.push('懸念事項が見られる場合は、スコア変化を話題にしながら「最近どんなことがありましたか？」と本人に語らせる場を作りましょう。');
+  if (deltas['NP'] >= 3) hints.push('NPが大きく上昇している場合、誰か特定の人をサポートする状況が生まれた可能性があります。抱え込んでいないか確認してみましょう。');
+  if (deltas['A'] >= 3) hints.push('Aが大きく上昇している場合、「なぜ？」と問いかけてくれる上司・メンターに出会った可能性があります。その関係を大切に育てましょう。');
+  if (deltas['FC'] >= 3) hints.push('FCが大きく上昇している場合、自己肯定感や充実感が増している状態です。何がきっかけか本人に聞くと、次の成長のヒントが見えます。');
+  if (Math.abs(totalDelta) >= 10) hints.push('合計エネルギーが大きく変化しています。環境変化（異動・転居・人間関係の変化など）がなかったか確認しましょう。');
+  if (hints.length === 0) hints.push('大きな変化がない場合も、「安定している」ということを本人に伝え、継続的な成長を支援する言葉をかけましょう。');
+
+  hints.forEach(function(h){ body += '<p>• '+h+'</p>'; });
+  body += '</div></div>';
+
+  // セクション6: 役職別変化分析
+  var currRole = curr.role || '';
+  if (currRole && ROLE_CHANGE_META[currRole]) {
+    body += buildRoleChangeSection(currRole, deltas, 6);
+  }
+
+  // セクション7: 価値観の変化（データがある場合のみ）
+  var prevVals = prev.scores && prev.scores.values;
+  var currVals = curr.scores && curr.scores.values;
+  if(prevVals && currVals){
+    body += buildValuesChangeSection(prevVals, currVals, 7);
+  }
+
+  document.getElementById('report-body').innerHTML = body;
+
+  // チャート描画
+  setTimeout(function(){
+    // 推移グラフ
+    if (history.length >= 2) {
+      var el = document.getElementById('trendChart');
+      if (el) {
+        if (window._trendInst) { window._trendInst.destroy(); }
+        var labels = history.map(function(s,i){ return '第'+(i+1)+'回\n'+s.date.slice(5); });
+        var datasets = [
+          { label:'CP', data:history.map(function(s){return s.scores.cp;}), borderColor:'#c0392b', backgroundColor:'rgba(192,57,43,0.08)', tension:.4, pointRadius:4 },
+          { label:'NP', data:history.map(function(s){return s.scores.np;}), borderColor:'#2c7a50', backgroundColor:'rgba(44,122,80,0.08)', tension:.4, pointRadius:4 },
+          { label:'A',  data:history.map(function(s){return s.scores.a;}),  borderColor:'#2c5282', backgroundColor:'rgba(44,82,130,0.08)',  tension:.4, pointRadius:4 },
+          { label:'FC', data:history.map(function(s){return s.scores.fc;}), borderColor:'#b7791f', backgroundColor:'rgba(183,121,31,0.08)', tension:.4, pointRadius:4 },
+          { label:'AC', data:history.map(function(s){return s.scores.ac;}), borderColor:'#6b46a0', backgroundColor:'rgba(107,70,160,0.08)', tension:.4, pointRadius:4 }
+        ];
+        window._trendInst = new Chart(el, {
+          type:'line', data:{ labels:labels, datasets:datasets },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ position:'top', labels:{ font:{size:11}, boxWidth:10, padding:12 }}},
+            scales:{
+              y:{ min:0, max:20, ticks:{stepSize:5,font:{size:10}}, grid:{color:'rgba(0,0,0,0.06)'} },
+              x:{ ticks:{font:{size:10}}, grid:{display:false} }
+            }
+          }
+        });
+      }
+    }
+
+    // 価値観レーダーチャート
+    if(prevVals && currVals){
+      var vcanvas = document.getElementById('valuesChangeRadarChart');
+      if(vcanvas){
+        if(window._valuesChangeRadarInst){ window._valuesChangeRadarInst.destroy(); }
+        var vkeys = ['a','b','c','d','e'];
+        var vLabels = vkeys.map(function(k){ return [VAL_CHANGE_META[k].name.split('の')[0], k.toUpperCase()]; });
+        window._valuesChangeRadarInst = new Chart(vcanvas, {
+          type: 'radar',
+          data: {
+            labels: vLabels,
+            datasets: [
+              {
+                label: '前回',
+                data: vkeys.map(function(k){ return prevVals[k]||0; }),
+                backgroundColor: 'rgba(136,136,170,0.08)',
+                borderColor: '#8888aa',
+                borderWidth: 2,
+                borderDash: [5,4],
+                pointBackgroundColor: '#8888aa',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+              },
+              {
+                label: '今回',
+                data: vkeys.map(function(k){ return currVals[k]||0; }),
+                backgroundColor: 'rgba(26,26,46,0.10)',
+                borderColor: '#1a1a2e',
+                borderWidth: 2.5,
+                pointBackgroundColor: vkeys.map(function(k){ return VAL_CHANGE_META[k].color; }),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0, max: 5,
+                ticks: { stepSize: 1, font:{ size:9 }, backdropColor:'transparent' },
+                grid: { color:'rgba(0,0,0,0.08)' },
+                angleLines: { color:'rgba(0,0,0,0.08)' },
+                pointLabels: { font:{ size:10, weight:'700' } }
+              }
+            },
+            plugins: {
+              legend: { display:false }
+            }
+          }
+        });
+      }
+    }
+  }, 100);
+}
+
+function formatDate(s) {
+  var d = new Date(s);
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+
+async function downloadPDF() {
+  var name = document.getElementById('name').value.trim() || 'エゴグラム変化レポート';
+  var btn = document.querySelector('.action-btn.primary');
+  btn.textContent = '⏳ 生成中...'; btn.disabled = true;
+  var style = document.createElement('style');
+  style.id='pdf-style';
+  style.textContent='.report-section{page-break-inside:avoid}.chart-block{page-break-inside:avoid}';
+  document.head.appendChild(style);
+  try {
+    await html2pdf().set({
+      margin:[10,10], filename:name+'_変化分析レポート.pdf',
+      image:{type:'jpeg',quality:0.95},
+      html2canvas:{scale:1.5,useCORS:true,logging:false},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['avoid-all','css','legacy']}
+    }).from(document.getElementById('report-doc')).save();
+  } catch(e) {
+    alert('PDFの生成に失敗しました。「印刷／PDF保存」をお試しください。');
+  } finally {
+    var s=document.getElementById('pdf-style'); if(s)s.remove();
+    btn.textContent='📄 PDFダウンロード'; btn.disabled=false;
+  }
+}
+
+// 初期化
+renderHistoryList();
+
+// ===== 入力フォームからの連携（tempキー方式） =====
+(function(){
+  try{
+    var raw = localStorage.getItem('egogram_role_temp_change');
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    if(Date.now() - d.ts > 10000) return;
+    localStorage.removeItem('egogram_role_temp_change');
+    if(!d.sessions || d.sessions.length < 2) return;
+    document.getElementById('name').value = d.name;
+    renderHistoryList();
+    generateReport(d.sessions);
+  }catch(e){}
+})();
+
+function doPrint() {
+  var reportEl = document.getElementById('report-doc');
+  if (!reportEl) { window.print(); return; }
+
+  var clone = reportEl.cloneNode(true);
+  var origCanvases = reportEl.querySelectorAll('canvas');
+  var cloneCanvases = clone.querySelectorAll('canvas');
+  origCanvases.forEach(function(orig, i) {
+    if (!cloneCanvases[i]) return;
+    try {
+      var img = document.createElement('img');
+      img.src = orig.toDataURL('image/png');
+      img.id = orig.id;
+      img.className = orig.className;
+      img.style.display = 'block';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      cloneCanvases[i].parentNode.replaceChild(img, cloneCanvases[i]);
+    } catch(e) {}
+  });
+
+  var styles = '';
+  document.querySelectorAll('style').forEach(function(s){ styles += s.textContent + '\n'; });
+  var links = '';
+  document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l){ links += l.outerHTML; });
+
+  var old = document.getElementById('_pf');
+  if (old) old.parentNode.removeChild(old);
+  var frame = document.createElement('iframe');
+  frame.id = '_pf';
+  frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;pointer-events:none';
+  document.body.appendChild(frame);
+
+  var iWin = frame.contentWindow;
+  var iDoc = iWin.document;
+  iDoc.open();
+  iDoc.write(
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' + links +
+    '<style>' + styles +
+    'body{background:#f5f4f0}.app-wrapper{display:block!important}' +
+    '.input-panel,.action-bar{display:none!important}' +
+    '.report-panel{padding:0!important;background:#fff!important}' +
+    '#report-output{display:block!important}' +
+    '</style></head>' +
+    '<body><div class="app-wrapper"><div class="report-panel"><div id="report-output">' +
+    clone.outerHTML + '</div></div></div></body></html>'
+  );
+  iDoc.close();
+
+  var fired = false;
+  function go() {
+    if (fired) return; fired = true;
+    iWin.focus();
+    iWin.print();
+    setTimeout(function(){ var f=document.getElementById('_pf'); if(f) f.parentNode.removeChild(f); }, 3000);
+  }
+  frame.onload = go;
+  setTimeout(go, 800);
+}
+
+function printReport() { doPrint(); }
+</script>
+</body>
+</html>

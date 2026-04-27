@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エゴグラム 回答フォーム（役職別）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1a2e;--mid:#3a3a5a;--light:#8888aa;--bg:#f5f4f0;--paper:#fffef9;
+  --border:#d4d0c8;--cp:#c0392b;--np:#2c7a50;--a:#2c5282;--fc:#b7791f;--ac:#6b46a0;
+  --va:#ad1457;--vb:#283593;--vc:#00695c;--vd:#bf360c;--ve:#827717;
+  --shadow:#555;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* ── トップバー ── */
+.top-bar{background:var(--ink);color:#fff;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-title{font-family:'Noto Serif JP',serif;font-size:15px;font-weight:700}
+.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:6px 12px;color:#e8e6e0;font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;text-decoration:none;transition:all .15s}
+.nav-btn:hover{background:rgba(255,255,255,0.2);color:#fff}
+
+/* ── ステッパー ── */
+.stepper-wrap{background:var(--ink);padding:14px 20px 18px;position:sticky;top:56px;z-index:90}
+.stepper{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:2px}
+.stepper::-webkit-scrollbar{height:0}
+.step-dot{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.step-circle{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);transition:all .25s;background:transparent}
+.step-circle.done{background:#2c7a50;border-color:#2c7a50;color:#fff}
+.step-circle.active{background:#fff;border-color:#fff;color:var(--ink)}
+.step-label{font-size:9px;color:rgba(255,255,255,0.4);white-space:nowrap;max-width:52px;text-align:center;line-height:1.2}
+.step-label.active{color:rgba(255,255,255,0.9)}
+.step-label.done{color:rgba(255,255,255,0.6)}
+.step-line{flex:1;height:2px;background:rgba(255,255,255,0.12);min-width:10px;max-width:28px;margin-bottom:18px;transition:background .25s}
+.step-line.done{background:#2c7a50}
+
+/* ── 進捗バー ── */
+.progress-bar-wrap{background:rgba(255,255,255,0.08);border-radius:2px;height:3px;margin-top:10px}
+.progress-bar{height:3px;background:#2c7a50;border-radius:2px;transition:width .3s}
+
+/* ── メインコンテンツ ── */
+.main{max-width:680px;margin:0 auto;padding:24px 16px 100px}
+
+/* ── カード ── */
+.card{background:var(--paper);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{font-family:'Noto Serif JP',serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:'Noto Sans JP',sans-serif}
+
+/* ── フォームフィールド ── */
+.field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field-label{font-size:12px;color:var(--mid);font-weight:500}
+.field-req{color:#c0392b;margin-left:2px}
+.field-input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--ink);font-size:14px;font-family:'Noto Sans JP',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.field-input:focus{border-color:var(--mid)}
+.field-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+/* ── グループ選択 ── */
+.group-row{display:flex;gap:8px;align-items:flex-end}
+.group-row .field-row{flex:1;margin-bottom:0}
+.group-add-btn{background:var(--ink);color:#fff;border:none;border-radius:7px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans JP',sans-serif;height:40px}
+.group-add-btn:hover{background:#2d2d4e}
+
+/* ── 問題グループ ── */
+.q-group{margin-bottom:24px}
+.q-group-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.q-group-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.q-group-title{font-weight:700;font-size:14px}
+.q-group-axis{font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px}
+.q-group-score{margin-left:auto;font-size:13px;font-weight:700;font-family:'Noto Serif JP',serif}
+
+/* ── 設問 ── */
+.question{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-bottom:1px solid #ede9e2}
+.question:last-child{border-bottom:none}
+.q-text{font-size:13px;line-height:1.6;color:var(--ink)}
+.q-num{font-size:11px;font-weight:700;color:var(--light);margin-right:4px;flex-shrink:0}
+.q-buttons{display:flex;gap:8px}
+.q-btn{flex:1;padding:9px 4px;border-radius:8px;border:2px solid var(--border);background:var(--bg);font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;line-height:1;color:var(--mid)}
+.q-btn:hover{border-color:var(--mid);background:#edeae2}
+.q-btn.selected-maru{background:#e8f5e9;border-color:#2c7a50;color:#2c7a50}
+.q-btn.selected-sank{background:#fef9e7;border-color:#b7791f;color:#b7791f}
+.q-btn.selected-batu{background:#fdecea;border-color:#c0392b;color:#c0392b}
+.q-btn-label{display:block;font-size:9px;font-weight:400;margin-top:2px;opacity:.7}
+
+/* 未回答ハイライト */
+.question.unanswered .q-text{color:#c0392b}
+.question.unanswered .q-buttons .q-btn:not([class*='selected']){border-color:#e0a0a0}
+
+/* ── 価値観 ── */
+.v-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #ede9e2}
+.v-item:last-child{border-bottom:none}
+.v-item-text{font-size:13px;flex:1;line-height:1.5}
+.v-item-num{font-size:11px;color:var(--light);font-weight:700;margin-right:2px}
+.v-btns{display:flex;gap:4px;flex-shrink:0}
+.v-btn{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);background:var(--bg);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;color:var(--mid);display:flex;align-items:center;justify-content:center}
+.v-btn:hover{border-color:var(--mid);background:#edeae2}
+.v-btn.selected{border-color:currentColor}
+
+/* ── スコアサマリー ── */
+.score-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.score-card{background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center}
+.score-card-label{font-size:10px;font-weight:700;margin-bottom:4px}
+.score-card-value{font-size:22px;font-weight:700}
+.score-card-max{font-size:10px;color:var(--light)}
+
+.values-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.val-card{background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center}
+
+/* ── ナビゲーションボタン ── */
+.nav-row{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.06)}
+.btn{border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all .2s;flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-back{background:var(--bg);color:var(--mid);border:1px solid var(--border);flex:0 0 auto;padding:12px 16px}
+.btn-back:hover{background:#edeae2}
+.btn-next{background:var(--ink);color:#fff}
+.btn-next:hover{background:#2d2d4e}
+.btn-save{background:#2c7a50;color:#fff}
+.btn-save:hover{background:#1e5c3a}
+.btn-skip{background:var(--bg);color:var(--light);border:1px solid var(--border);flex:0 0 auto;padding:12px 14px;font-size:12px}
+.btn-skip:hover{background:#edeae2}
+
+/* ── 確認ページ ── */
+.confirm-field{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #ede9e2;font-size:13px}
+.confirm-field:last-child{border-bottom:none}
+.confirm-label{color:var(--light)}
+.confirm-value{font-weight:700}
+
+/* ── 完了ページ ── */
+.complete-card{text-align:center;padding:40px 20px}
+.complete-icon{font-size:56px;margin-bottom:16px}
+.complete-title{font-family:'Noto Serif JP',serif;font-size:20px;font-weight:700;margin-bottom:8px}
+.complete-sub{font-size:13px;color:var(--mid);line-height:1.8;margin-bottom:24px}
+.report-btns{display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto}
+.report-link-btn{display:block;padding:13px 20px;border-radius:9px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;text-align:left;border:none;transition:all .15s}
+.report-link-btn.primary{background:var(--ink);color:#fff}
+.report-link-btn.primary:hover{background:#2d2d4e}
+.report-link-btn.secondary{background:rgba(44,122,80,0.12);color:#1a7a4a;border:1px solid rgba(44,122,80,0.25)}
+.report-link-btn.secondary:hover{background:rgba(44,122,80,0.2)}
+.report-link-btn.tertiary{background:var(--bg);color:var(--mid);border:1px solid var(--border)}
+.report-link-btn.tertiary:hover{background:#edeae2}
+.report-link-sub{display:block;font-size:10px;font-weight:400;opacity:.7;margin-top:2px}
+
+/* ── トースト ── */
+#toast{position:fixed;bottom:80px;right:16px;background:#1a7a4a;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);opacity:0;pointer-events:none;transition:opacity .3s}
+
+/* ── バリデーションエラー ── */
+.error-msg{background:#fdecea;border:1px solid rgba(192,57,43,0.3);border-radius:6px;padding:10px 14px;font-size:12px;color:#c0392b;margin-bottom:12px;display:none}
+
+/* ── スキップバナー ── */
+.skip-banner{background:rgba(44,82,130,0.08);border:1px solid rgba(44,82,130,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:#2c5282;margin-bottom:12px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- トップバー -->
+<div class="top-bar">
+  <div class="top-title">エゴグラム 回答フォーム</div>
+  <a class="nav-btn" id="nav-input" href="egogram_role_input.html">手動入力へ</a>
+</div>
+
+<!-- ステッパー -->
+<div class="stepper-wrap">
+  <div class="stepper" id="stepper"></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- メインコンテンツ -->
+<div class="main" id="main-content"></div>
+
+<!-- ナビゲーション -->
+<div class="nav-row" id="nav-row"></div>
+
+<!-- トースト -->
+<div id="toast"></div>
+
+<script>
+// ===== データ定義 =====
+
+var EGO_GROUPS = [
+  {
+    id: 1, num: '①', axis: 'CP', axisLabel: 'CP 批判的な親の心', color: 'var(--cp)', bgColor: 'rgba(192,57,43,0.12)',
+    questions: [
+      '何ごとも白黒はっきりさせて、すっきりさせたい。',
+      '１度決めたことは最後までやり通す。',
+      '友人や知人の間違いをすぐに指摘する。',
+      '約束の時間は必ず守るべきだと思う。',
+      '自分に逆らう人は気に入らない。',
+      '人の礼儀・作法をうるさくチェックする。',
+      '自分が親になったら子供を厳しく育てると思う。',
+      '「これはこうだ」「…に決まっている」断定的な表現をよく使う。',
+      '自分の考えをゆずらないで、最後までおし通す。',
+      '自分は正しいと思うことがよくある。'
+    ]
+  },
+  {
+    id: 2, num: '②', axis: 'NP', axisLabel: 'NP 養育的な親の心', color: 'var(--np)', bgColor: 'rgba(44,122,80,0.1)',
+    questions: [
+      '自分のことよりも、他人の世話をするのが好き。',
+      '落ち込んでいる人のために、なぐさめたり、元気づけてあげられる。',
+      '子供がかわいくて、頭を撫でてやりたいと思う。',
+      'がんばっている人を見ると素直にほめる。',
+      '頼み事は断れない。私にまかせなさい、と引き受ける。',
+      '他人から道を聞かれたら、親切に教えてあげている。',
+      '他人の短所よりも長所を見つける方が得意だ。',
+      '思いやりは大切だ。自分にはそれがある。',
+      '友達が失敗したときは、責めないで許してあげる。',
+      '友達に何かプレゼントをするのが好き。'
+    ]
+  },
+  {
+    id: 3, num: '③', axis: 'A', axisLabel: 'A 大人の心', color: 'var(--a)', bgColor: 'rgba(44,82,130,0.1)',
+    questions: [
+      '分からないことは、人に聞いたり相談する。',
+      '人に対して感情的に接することは少ない。',
+      'いろいろな本を一週間に三冊は読む。',
+      '対処できない事態には、冷静に話し合えばよい。',
+      '結果の予測できないことには、行動しない。',
+      '体調が悪い時は、無理をしないで安静にしている。',
+      'テスト前はスケジュール表を作り、計画的に勉強する。',
+      '何かをする場合、自分にとって損か得かよく考える。',
+      '勉強や仕事をテキパキと片づける。',
+      '人の噂話は絶対に信じない。'
+    ]
+  },
+  {
+    id: 4, num: '④', axis: 'FC', axisLabel: 'FC 自由な子供の心', color: 'var(--fc)', bgColor: 'rgba(183,121,31,0.1)',
+    questions: [
+      '思ったことは遠慮なく必ず言う。',
+      'みんなと一緒に騒いだり、はしゃいだりすることが好き。',
+      '自分はオシャレが好きなほうだと思う。',
+      '遊びに遅れて参加しても、すぐにその場になじめる。',
+      'うれしさや悲しさが、よく顔に出る。',
+      '「めっちゃ」「すげー」「かっこいい！」という表現をする。',
+      '人に冗談を言ったり、からかったりするのが好き。',
+      '遊ぶことは大得意。我を忘れて騒げる。',
+      '欲しいものがある時には、手に入れるまで気がすまない。',
+      'イヤなことはイヤと言う。'
+    ]
+  },
+  {
+    id: 5, num: '⑤', axis: 'AC', axisLabel: 'AC 順応した子供の心', color: 'var(--ac)', bgColor: 'rgba(107,70,160,0.1)',
+    questions: [
+      '友達や両親の顔色をみて行動してしまう。',
+      'イヤなことをイヤと言えずに我慢してしまう。',
+      '友人よりも自分のほうが劣っていると思う。',
+      'いつも無理をして他人に合わせようとしている。',
+      '好きな人のためならば、嫌なことでも我慢する。',
+      '本当の自分の意見よりも他人の意見を重視する。',
+      '遠慮がちで消極的である。',
+      '親や友達の機嫌をうかがうことがよくある。',
+      '内心は不満だが、表面では満足しているように振る舞っている。',
+      '理由もなくゆううつな気持ちになることがある。'
+    ]
+  },
+  {
+    id: 6, num: '⑥', axis: 'Shadow', axisLabel: 'シャドウ（参考）', color: 'var(--shadow)', bgColor: 'rgba(85,85,85,0.08)',
+    questions: [
+      '人のことを恨んだことがある。',
+      '愚痴をこぼしたことがある。',
+      '人の悪口で楽しんだことがある。',
+      'イライラしたり腹をたてることがある。',
+      '人に対してウソをついたことがある。',
+      '状況によっては言い訳を使う。',
+      '人を疑ったことがある。',
+      '友達や先輩に愛想笑いをしたことがある。',
+      'お金を拾っても交番には届けない。',
+      '約束を破ったことがある。'
+    ]
+  }
+];
+
+var VALUE_GROUPS = [
+  {
+    id: 'a', label: '問A', axis: 'A', axisLabel: '愛・所属の欲求', color: 'var(--va)',
+    items: ['人との触れ合い','人との交流の多い生活','社会への責任感','家族への責任感','親友との人間関係','他者との連帯感','職場の同僚','会社への責任感','世間体','絆（きずな）']
+  },
+  {
+    id: 'b', label: '問B', axis: 'B', axisLabel: '達成の欲求', color: 'var(--vb)',
+    items: ['やりがい','充実感','干渉されない生活','権威のある立場','名誉','高い地位','高い目標','計画性','期限を守る','苦楽がはっきりした生活']
+  },
+  {
+    id: 'c', label: '問C', axis: 'C', axisLabel: '自由の欲求', color: 'var(--vc)',
+    items: ['のんびりした生活','優雅な生活','気ままな人生','組織に束縛されない生き方','自分のことは自分で決める','休日の過ごし方は趣くまま','ゆっくり過ごしたい','ゆとりのある生活','マイペース','気楽']
+  },
+  {
+    id: 'd', label: '問D', axis: 'D', axisLabel: '楽しみの欲求', color: 'var(--vd)',
+    items: ['おもしろさ','刺激に満ちた人生','華やかさ','趣味のある人生','変化に富んだ人生','TVゲーム','映画','旅行','社交場','スポーツ']
+  },
+  {
+    id: 'e', label: '問E', axis: 'E', axisLabel: '金銭の欲求', color: 'var(--ve)',
+    items: ['豊かなくらし','贅沢なくらし','財産の所有','収入の多い人生','財産形成','株式投資','不動産','豪邸','高級車','ブランド品']
+  }
+];
+
+// ===== 状態管理 =====
+var state = {
+  step: 0,  // 0=基本情報, 1=交流①②, 2=交流③④, 3=交流⑤⑥, 4=価値観ABC, 5=価値観DE, 6=確認, 7=完了
+  name: '',
+  date: new Date().toISOString().split('T')[0],
+  memo: '',
+  role: '',
+  group: '',
+  // 交流分析: answers[groupIndex][questionIndex] = null | 'maru' | 'sank' | 'batu'
+  answers: [
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null]
+  ],
+  // 価値観: vAnswers[groupIndex][itemIndex] = null | 1-5
+  vAnswers: [
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null]
+  ],
+  skipValues: false,
+  savedName: '',
+  savedDate: ''
+};
+
+var GROUP_LIST_KEY    = 'egogram_role_groups_v1';
+var SESSION_GROUP_KEY = 'egogram_role_current_group';
+var STORAGE_KEY       = 'egogram_role_history_v1';
+
+function getGroupKey(g){ return g ? 'egogram_role_group_'+g : 'egogram_role_history_v1'; }
+function loadGroups(){ try{return JSON.parse(localStorage.getItem(GROUP_LIST_KEY))||[];}catch(e){return[];} }
+function saveGroups(a){ localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(a)); }
+function loadHistory(key){ try{return JSON.parse(localStorage.getItem(key||STORAGE_KEY))||[];}catch(e){return[];} }
+
+// ===== スコア計算 =====
+function calcEgoScore(groupIdx){
+  var score = 0;
+  state.answers[groupIdx].forEach(function(a){
+    if(a === 'maru') score += 2;
+    else if(a === 'sank') score += 1;
+  });
+  return score;
+}
+
+function calcValueAvg(groupIdx){
+  var vals = state.vAnswers[groupIdx].filter(function(v){ return v !== null; });
+  if(vals.length === 0) return 0;
+  var sum = vals.reduce(function(s, v){ return s + v; }, 0);
+  return Math.round((sum / vals.length) * 10) / 10;
+}
+
+// ===== ステッパー描画 =====
+var STEPS = [
+  { label: '基本情報' },
+  { label: '交流分析\n①②' },
+  { label: '交流分析\n③④' },
+  { label: '交流分析\n⑤⑥' },
+  { label: '価値観\nA・B・C' },
+  { label: '価値観\nD・E' },
+  { label: '確認・保存' }
+];
+
+function renderStepper(){
+  var wrap = document.getElementById('stepper');
+  wrap.innerHTML = '';
+  STEPS.forEach(function(s, i){
+    if(i > 0){
+      var line = document.createElement('div');
+      line.className = 'step-line' + (i <= state.step ? ' done' : '');
+      wrap.appendChild(line);
+    }
+    var dot = document.createElement('div');
+    dot.className = 'step-dot';
+
+    var circle = document.createElement('div');
+    var cls = 'step-circle';
+    if(i < state.step) cls += ' done';
+    else if(i === state.step) cls += ' active';
+    circle.className = cls;
+    circle.textContent = i < state.step ? '✓' : (i + 1);
+    dot.appendChild(circle);
+
+    var label = document.createElement('div');
+    label.className = 'step-label' + (i === state.step ? ' active' : i < state.step ? ' done' : '');
+    label.textContent = s.label.replace('\\n', '\n');
+    label.style.whiteSpace = 'pre-line';
+    dot.appendChild(label);
+
+    wrap.appendChild(dot);
+  });
+
+  // 進捗バー
+  var pct = (state.step / (STEPS.length - 1)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+// ===== 各ステップ描画 =====
+function render(){
+  renderStepper();
+  var main = document.getElementById('main-content');
+  var nav  = document.getElementById('nav-row');
+
+  switch(state.step){
+    case 0: renderStep0(main, nav); break;
+    case 1: renderEgoStep(main, nav, 0, 1); break;  // グループ①②
+    case 2: renderEgoStep(main, nav, 2, 3); break;  // グループ③④
+    case 3: renderEgoStep(main, nav, 4, 5); break;  // グループ⑤⑥
+    case 4: renderValueStep(main, nav, 0, 1, 2); break; // 問A・B・C
+    case 5: renderValueStep(main, nav, 3, 4, -1); break; // 問D・E
+    case 6: renderConfirm(main, nav); break;
+    case 7: renderComplete(main, nav); break;
+  }
+  window.scrollTo(0, 0);
+}
+
+// ── Step 0: 基本情報 ──
+function renderStep0(main, nav){
+  var groups = loadGroups();
+  var groupOptions = '<option value=""'+(state.group===''?' selected':'')+'>── グループなし ──</option>' +
+    groups.map(function(g){
+      return '<option value="'+escH(g)+'"'+(g===state.group?' selected':'')+'>'+escH(g)+'</option>';
+    }).join('');
+
+  main.innerHTML =
+    '<div class="card">'+
+      '<div class="card-title">📋 基本情報</div>'+
+      '<div id="err-msg" class="error-msg"></div>'+
+      '<div class="field-row">'+
+        '<div class="field-label">氏名 <span class="field-req">＊</span></div>'+
+        '<input class="field-input" id="f-name" type="text" placeholder="例：山田 太郎" value="'+escH(state.name)+'">'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field-label">実施日 <span class="field-req">＊</span></div>'+
+        '<input class="field-input" id="f-date" type="date" value="'+escH(state.date)+'">'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field-label">役職区分 <span class="field-req">＊</span></div>'+
+        '<select class="field-input field-select" id="f-role">'+
+          '<option value=""'+(state.role===''?' selected':'')+'>— 選択してください —</option>'+
+          '<option value="管理職"'+(state.role==='管理職'?' selected':'')+'>管理職</option>'+
+          '<option value="一般"'+(state.role==='一般'?' selected':'')+'>一般</option>'+
+          '<option value="若手"'+(state.role==='若手'?' selected':'')+'>若手</option>'+
+        '</select>'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field-label">メモ（任意）</div>'+
+        '<input class="field-input" id="f-memo" type="text" placeholder="例：研修3ヶ月後" value="'+escH(state.memo)+'">'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field-label">グループ</div>'+
+        '<div class="group-row">'+
+          '<div class="field-row" style="margin-bottom:0;flex:1">'+
+            '<select class="field-input field-select" id="f-group">'+groupOptions+'</select>'+
+          '</div>'+
+          '<button class="group-add-btn" onclick="addGroup()">＋新規</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  nav.innerHTML =
+    '<button class="btn btn-next" onclick="goNext()">交流分析へ進む →</button>';
+}
+
+function addGroup(){
+  var name = prompt('グループ名を入力してください\n例：A社_営業部、2025年度_研修');
+  if(!name||!name.trim()) return;
+  name = name.trim();
+  var groups = loadGroups();
+  if(groups.indexOf(name)>=0){alert('同名のグループが既に存在します。');return;}
+  groups.push(name);
+  saveGroups(groups);
+  state.group = name;
+  renderStep0(document.getElementById('main-content'), document.getElementById('nav-row'));
+  showToast('グループ「'+name+'」を作成しました');
+}
+
+// ── Step 1-3: 交流分析 ──
+function renderEgoStep(main, nav, gIdx1, gIdx2){
+  var html = '<div id="err-msg" class="error-msg"></div>'+
+    '<div style="display:flex;gap:12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:16px;flex-wrap:wrap">'+
+      '<span style="font-size:12px;color:var(--mid);font-weight:700;margin-right:4px">回答の目安：</span>'+
+      '<span style="font-size:12px;color:#2c7a50;font-weight:700">○ 当てはまる</span>'+
+      '<span style="font-size:12px;color:var(--light);margin:0 2px">/</span>'+
+      '<span style="font-size:12px;color:#b7791f;font-weight:700">△ どちらともいえない</span>'+
+      '<span style="font-size:12px;color:var(--light);margin:0 2px">/</span>'+
+      '<span style="font-size:12px;color:#c0392b;font-weight:700">× 当てはまらない</span>'+
+    '</div>';
+
+  [gIdx1, gIdx2].forEach(function(gIdx){
+    var g = EGO_GROUPS[gIdx];
+    var score = calcEgoScore(gIdx);
+    var answered = state.answers[gIdx].filter(function(a){ return a !== null; }).length;
+
+    html += '<div class="q-group">';
+    html += '<div class="q-group-header">';
+    html += '<div class="q-group-num" style="background:'+g.color+'">'+g.num+'</div>';
+    html += '<div>';
+    html += '<div class="q-group-title">グループ '+g.num+'</div>';
+    html += '<div style="font-size:11px;color:var(--light);margin-top:1px">'+answered+'/10問 回答済み</div>';
+    html += '</div>';
+    html += '<div class="q-group-score" style="color:'+g.color+'">'+score+'<span style="font-size:10px;color:var(--light);">/20</span></div>';
+    html += '</div>';
+
+    g.questions.forEach(function(q, qi){
+      var ans = state.answers[gIdx][qi];
+      var isUnanswered = ans === null;
+      html += '<div class="question'+(isUnanswered&&_showErrors?' unanswered':'')+'" id="q-'+gIdx+'-'+qi+'">';
+      html += '<div class="q-text"><span class="q-num">'+(qi+1)+'.</span>'+escH(q)+'</div>';
+      html += '<div class="q-buttons">';
+      html += '<button class="q-btn'+(ans==='maru'?' selected-maru':'')+'" onclick="setAnswer('+gIdx+','+qi+',\'maru\')">○</button>';
+      html += '<button class="q-btn'+(ans==='sank'?' selected-sank':'')+'" onclick="setAnswer('+gIdx+','+qi+',\'sank\')">△</button>';
+      html += '<button class="q-btn'+(ans==='batu'?' selected-batu':'')+'" onclick="setAnswer('+gIdx+','+qi+',\'batu\')">×</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  main.innerHTML = html;
+
+  nav.innerHTML =
+    '<button class="btn btn-back" onclick="goBack()">← 戻る</button>'+
+    '<button class="btn btn-next" onclick="goNext()">次へ →</button>';
+}
+
+var _showErrors = false;
+
+function setAnswer(gIdx, qIdx, val){
+  state.answers[gIdx][qIdx] = val;
+  // ボタン状態を即時更新（再描画なし）
+  var container = document.getElementById('q-'+gIdx+'-'+qIdx);
+  if(!container) return;
+  var btns = container.querySelectorAll('.q-btn');
+  btns[0].className = 'q-btn' + (val==='maru'?' selected-maru':'');
+  btns[1].className = 'q-btn' + (val==='sank'?' selected-sank':'');
+  btns[2].className = 'q-btn' + (val==='batu'?' selected-batu':'');
+  container.classList.remove('unanswered');
+
+  // スコア更新
+  var g, gIdx1, gIdx2;
+  if(state.step === 1){ gIdx1=0; gIdx2=1; }
+  else if(state.step === 2){ gIdx1=2; gIdx2=3; }
+  else { gIdx1=4; gIdx2=5; }
+
+  [gIdx1, gIdx2].forEach(function(gi){
+    var score = calcEgoScore(gi);
+    var answered = state.answers[gi].filter(function(a){ return a !== null; }).length;
+    var scoreEl = document.querySelector('.q-group:nth-child('+(gi===gIdx1?2:3)+') .q-group-score');
+    if(scoreEl) scoreEl.innerHTML = score+'<span style="font-size:10px;color:var(--light);">/20</span>';
+    var subEl = document.querySelector('.q-group:nth-child('+(gi===gIdx1?2:3)+') .q-group-header div:nth-child(2) div:last-child');
+    if(subEl) subEl.textContent = answered+'/10問 回答済み';
+  });
+}
+
+// ── Step 4-5: 価値観テスト ──
+function renderValueStep(main, nav, vIdx1, vIdx2, vIdx3){
+  var idxList = [vIdx1, vIdx2];
+  if(vIdx3 >= 0) idxList.push(vIdx3);
+
+  var html = '<div id="err-msg" class="error-msg"></div>';
+  if(state.step === 4){
+    html += '<div class="skip-banner">価値観テストは任意です。スキップして確認ページへ進めます。</div>';
+  }
+
+  idxList.forEach(function(vIdx){
+    var g = VALUE_GROUPS[vIdx];
+    var avg = calcValueAvg(vIdx);
+    var answered = state.vAnswers[vIdx].filter(function(v){ return v !== null; }).length;
+
+    html += '<div class="q-group">';
+    html += '<div class="q-group-header">';
+    html += '<div class="q-group-num" style="background:'+g.color+'">'+g.label+'</div>';
+    html += '<div>';
+    html += '<div class="q-group-title">'+escH(g.label)+'</div>';
+    html += '<div style="font-size:11px;color:var(--light);margin-top:1px">'+answered+'/10項目 回答済み</div>';
+    html += '</div>';
+    html += '<div class="q-group-score" style="color:'+g.color+'">平均 '+avg+'<span style="font-size:10px;color:var(--light);">/5</span></div>';
+    html += '</div>';
+    html += '<div style="font-size:10px;color:var(--light);margin-bottom:8px;padding:0 2px">各項目の重要度を 1（低い）〜 5（高い）で評価してください</div>';
+
+    g.items.forEach(function(item, ii){
+      var val = state.vAnswers[vIdx][ii];
+      html += '<div class="v-item" id="vi-'+vIdx+'-'+ii+'">';
+      html += '<div class="v-item-text"><span class="v-item-num">'+(ii+1)+'.</span>'+escH(item)+'</div>';
+      html += '<div class="v-btns">';
+      [1,2,3,4,5].forEach(function(n){
+        var sel = val===n;
+        var selStyle = sel ? 'background:'+g.color+';color:#fff;border-color:'+g.color+';' : '';
+        html += '<button class="v-btn" style="'+selStyle+'" onclick="setVAnswer('+vIdx+','+ii+','+n+')">'+n+'</button>';
+      });
+      html += '</div>';
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  main.innerHTML = html;
+
+  var navHtml = '<button class="btn btn-back" onclick="goBack()">← 戻る</button>';
+  if(state.step === 4){
+    navHtml += '<button class="btn btn-skip" onclick="skipValues()">スキップ</button>';
+  }
+  navHtml += '<button class="btn btn-next" onclick="goNext()">次へ →</button>';
+  nav.innerHTML = navHtml;
+}
+
+function setVAnswer(vIdx, iIdx, val){
+  state.vAnswers[vIdx][iIdx] = val;
+  // ボタン状態即時更新
+  var container = document.getElementById('vi-'+vIdx+'-'+iIdx);
+  if(!container) return;
+  var g = VALUE_GROUPS[vIdx];
+  var btns = container.querySelectorAll('.v-btn');
+  btns.forEach(function(btn, i){
+    var n = i + 1;
+    if(n === val){
+      btn.style.cssText = 'background:'+g.color+';color:#fff;border-color:'+g.color+';';
+    } else {
+      btn.style.cssText = '';
+    }
+  });
+  // 平均更新
+  var avg = calcValueAvg(vIdx);
+  var answered = state.vAnswers[vIdx].filter(function(v){ return v !== null; }).length;
+  // スコア表示を更新（q-groupの位置で探す）
+  var groups = document.querySelectorAll('.q-group');
+  var idxList;
+  if(state.step === 4) idxList = [0,1,2];
+  else idxList = [0,1];
+  // vIdxとidxListの対応
+  var groupPos = -1;
+  if(state.step === 4){
+    if(vIdx===0) groupPos=0; else if(vIdx===1) groupPos=1; else if(vIdx===2) groupPos=2;
+  } else {
+    if(vIdx===3) groupPos=0; else if(vIdx===4) groupPos=1;
+  }
+  if(groupPos >= 0 && groups[groupPos]){
+    var scoreEl = groups[groupPos].querySelector('.q-group-score');
+    var subEl = groups[groupPos].querySelector('.q-group-header div:nth-child(2) div:last-child');
+    if(scoreEl) scoreEl.innerHTML = '平均 '+avg+'<span style="font-size:10px;color:var(--light);">/5</span>';
+    if(subEl) subEl.textContent = answered+'/10項目 回答済み';
+  }
+}
+
+function skipValues(){
+  state.skipValues = true;
+  state.step = 6;
+  render();
+}
+
+// ── Step 6: 確認 ──
+function renderConfirm(main, nav){
+  var axisMap = ['cp','np','a','fc','ac'];
+  var axisColors = {cp:'var(--cp)',np:'var(--np)',a:'var(--a)',fc:'var(--fc)',ac:'var(--ac)'};
+  var axisLabels = {cp:'CP',np:'NP',a:'A',fc:'FC',ac:'AC'};
+
+  var scoreCards = ['cp','np','a','fc','ac'].map(function(k, i){
+    var val = calcEgoScore(i);
+    return '<div class="score-card">'+
+      '<div class="score-card-label" style="color:'+axisColors[k]+'">'+axisLabels[k]+'</div>'+
+      '<div class="score-card-value" style="color:'+axisColors[k]+'">'+val+'</div>'+
+      '<div class="score-card-max">/20</div>'+
+    '</div>';
+  }).join('');
+
+  var valCards = '';
+  var hasValues = !state.skipValues && state.vAnswers.some(function(g){
+    return g.some(function(v){ return v !== null; });
+  });
+  if(hasValues){
+    var vColors = {a:'var(--va)',b:'var(--vb)',c:'var(--vc)',d:'var(--vd)',e:'var(--ve)'};
+    var vLabels = {a:'A 愛・所属',b:'B 達成',c:'C 自由',d:'D 楽しみ',e:'E 金銭'};
+    valCards = '<div style="margin-top:16px"><div style="font-size:12px;color:var(--light);margin-bottom:8px">価値観テスト</div>'+
+      '<div class="values-summary">'+
+      ['a','b','c','d','e'].map(function(k, i){
+        var avg = calcValueAvg(i);
+        return '<div class="val-card">'+
+          '<div style="font-size:9px;font-weight:700;color:'+vColors[k]+';margin-bottom:4px">'+vLabels[k].split(' ')[0]+'</div>'+
+          '<div style="font-size:18px;font-weight:700;color:'+vColors[k]+'">'+avg+'</div>'+
+          '<div style="font-size:9px;color:var(--light)">/5</div>'+
+        '</div>';
+      }).join('')+
+      '</div></div>';
+  }
+
+  var shadowScore = calcEgoScore(5);
+
+  main.innerHTML =
+    '<div class="card">'+
+      '<div class="card-title">✅ 入力内容の確認</div>'+
+      '<div class="confirm-field"><span class="confirm-label">氏名</span><span class="confirm-value">'+escH(state.name)+'</span></div>'+
+      '<div class="confirm-field"><span class="confirm-label">実施日</span><span class="confirm-value">'+escH(state.date)+'</span></div>'+
+      '<div class="confirm-field"><span class="confirm-label">役職</span><span class="confirm-value">'+escH(state.role)+'</span></div>'+
+      (state.memo ? '<div class="confirm-field"><span class="confirm-label">メモ</span><span class="confirm-value">'+escH(state.memo)+'</span></div>' : '')+
+      (state.group ? '<div class="confirm-field"><span class="confirm-label">グループ</span><span class="confirm-value">'+escH(state.group)+'</span></div>' : '')+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">📊 交流分析スコア</div>'+
+      '<div class="score-summary">'+scoreCards+'</div>'+
+      '<div style="font-size:11px;color:var(--light)">シャドウ（参考）：'+shadowScore+'/20</div>'+
+      valCards+
+    '</div>';
+
+  nav.innerHTML =
+    '<button class="btn btn-back" onclick="goBack()">← 戻る</button>'+
+    '<button class="btn btn-save" onclick="saveData()">💾 保存してレポートへ</button>';
+}
+
+// ── Step 7: 完了 ──
+function renderComplete(main, nav){
+  main.innerHTML =
+    '<div class="card complete-card">'+
+      '<div class="complete-icon">✅</div>'+
+      '<div class="complete-title">回答が完了しました</div>'+
+      '<div class="complete-sub">ご回答いただきありがとうございました。<br>入力内容は正常に送信されました。<br><br>この画面は閉じていただいて構いません。</div>'+
+    '</div>';
+
+  nav.innerHTML =
+    '<button class="btn btn-next" style="background:var(--mid)" onclick="resetForm()">次の方の回答へ</button>';
+}
+
+// ===== バリデーション =====
+function validateStep(){
+  _showErrors = false;
+  if(state.step === 0){
+    var name = document.getElementById('f-name').value.trim();
+    var date = document.getElementById('f-date').value;
+    var role = document.getElementById('f-role').value;
+    if(!name || !date || !role){
+      var msg = [];
+      if(!name) msg.push('氏名');
+      if(!date) msg.push('実施日');
+      if(!role) msg.push('役職区分');
+      showError('err-msg', msg.join('・')+'を入力してください。');
+      return false;
+    }
+    return true;
+  }
+  if(state.step >= 1 && state.step <= 3){
+    var gIdx1, gIdx2;
+    if(state.step===1){gIdx1=0;gIdx2=1;}
+    else if(state.step===2){gIdx1=2;gIdx2=3;}
+    else{gIdx1=4;gIdx2=5;}
+
+    var missing = [];
+    [gIdx1, gIdx2].forEach(function(gi){
+      state.answers[gi].forEach(function(a, qi){
+        if(a === null) missing.push(gi+'-'+qi);
+      });
+    });
+    if(missing.length > 0){
+      _showErrors = true;
+      // 未回答の設問をハイライト
+      missing.forEach(function(id){
+        var el = document.getElementById('q-'+id);
+        if(el) el.classList.add('unanswered');
+      });
+      showError('err-msg', '未回答の設問があります（'+missing.length+'問）。すべて回答してから次へ進んでください。');
+      // 最初の未回答にスクロール
+      var firstEl = document.getElementById('q-'+missing[0]);
+      if(firstEl) firstEl.scrollIntoView({behavior:'smooth', block:'center'});
+      return false;
+    }
+    return true;
+  }
+  if(state.step >= 4 && state.step <= 5){
+    // 価値観は任意→スキップ可能なので常にOK
+    return true;
+  }
+  return true;
+}
+
+function showError(id, msg){
+  var el = document.getElementById(id);
+  if(el){ el.textContent = msg; el.style.display = 'block'; }
+}
+
+// ===== ナビゲーション =====
+function goNext(){
+  if(state.step === 0){
+    // 基本情報の値を保存
+    state.name  = document.getElementById('f-name').value.trim();
+    state.date  = document.getElementById('f-date').value;
+    state.role  = document.getElementById('f-role').value;
+    state.memo  = document.getElementById('f-memo').value.trim();
+    state.group = document.getElementById('f-group').value;
+  }
+  if(!validateStep()) return;
+  state.step++;
+  render();
+}
+
+function goBack(){
+  if(state.step > 0){
+    state.step--;
+    render();
+  }
+}
+
+// ===== データ保存 =====
+function saveData(){
+  var axisKeys = ['cp','np','a','fc','ac'];
+  var scores = {};
+  axisKeys.forEach(function(k, i){
+    scores[k] = calcEgoScore(i);
+  });
+
+  // 価値観
+  var hasValues = !state.skipValues && state.vAnswers.some(function(g){
+    return g.some(function(v){ return v !== null; });
+  });
+  if(hasValues){
+    scores.values = {
+      a: calcValueAvg(0),
+      b: calcValueAvg(1),
+      c: calcValueAvg(2),
+      d: calcValueAvg(3),
+      e: calcValueAvg(4)
+    };
+  }
+
+  // シャドウスコアを別フィールドに保存（参考用）
+  scores.shadow = calcEgoScore(5);
+
+  var entry = {
+    name:    state.name,
+    date:    state.date,
+    memo:    state.memo,
+    role:    state.role,
+    scores:  scores,
+    savedAt: new Date().toISOString()
+  };
+
+  var storageKey = state.group ? getGroupKey(state.group) : 'egogram_role_history_v1';
+  var h = loadHistory(storageKey);
+  var idx = h.findIndex(function(s){ return s.name===state.name && s.date===state.date; });
+  if(idx >= 0){
+    if(!confirm(state.name+'（'+state.date+'）のデータが既に存在します。上書きしますか？')) return;
+    h[idx] = entry;
+  } else {
+    h.push(entry);
+  }
+  localStorage.setItem(storageKey, JSON.stringify(h));
+
+  // セッションストレージにグループを保存（他ページと共有）
+  if(state.group){ sessionStorage.setItem(SESSION_GROUP_KEY, state.group); }
+
+  state.savedName = state.name;
+  state.savedDate = state.date;
+  state.step = 7;
+  render();
+}
+
+// ===== レポート出力 =====
+function openReport(){
+  var storageKey = state.group ? getGroupKey(state.group) : 'egogram_role_history_v1';
+  var h = loadHistory(storageKey);
+  var recs = h.filter(function(s){ return s.name===state.savedName; });
+  recs.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(recs.length === 0){ alert('データが見つかりません。'); return; }
+  var target = recs[recs.length-1];
+  localStorage.setItem('egogram_role_temp_report', JSON.stringify({
+    name:   state.savedName,
+    date:   target.date,
+    dept:   target.memo || '',
+    role:   target.role || '',
+    scores: target.scores,
+    ts:     Date.now()
+  }));
+  window.open('egogram_role_report.html?from=input');
+}
+
+function openChangeReport(){
+  var storageKey = state.group ? getGroupKey(state.group) : 'egogram_role_history_v1';
+  var h = loadHistory(storageKey);
+  var recs = h.filter(function(s){ return s.name===state.savedName; });
+  if(recs.length < 2){
+    alert(state.savedName+'さんのデータは'+recs.length+'回分のみです。\n変化レポートは2回目以降から表示されます。');
+    return;
+  }
+  recs.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  localStorage.setItem('egogram_role_temp_change', JSON.stringify({
+    name:     state.savedName,
+    sessions: recs,
+    ts:       Date.now()
+  }));
+  window.open('egogram_role_change_report.html');
+}
+
+// ===== フォームリセット =====
+function resetForm(){
+  state.step = 0;
+  state.name = '';
+  state.date = new Date().toISOString().split('T')[0];
+  state.memo = '';
+  state.role = '';
+  state.answers = [
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null]
+  ];
+  state.vAnswers = [
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null,null,null]
+  ];
+  state.skipValues = false;
+  _showErrors = false;
+  render();
+}
+
+// ===== ユーティリティ =====
+function escH(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(function(){ t.style.opacity='0'; }, 2500);
+}
+
+// ===== 初期化 =====
+// URLパラメータからグループを取得
+var urlP = new URLSearchParams(window.location.search);
+var urlG = urlP.get('group');
+if(urlG !== null){ state.group = urlG; }
+else { state.group = sessionStorage.getItem(SESSION_GROUP_KEY) || ''; }
+
+// ナビリンクにグループパラメータを付与
+var navInput = document.getElementById('nav-input');
+if(state.group){ navInput.href = 'egogram_role_input.html?group='+encodeURIComponent(state.group); }
+
+render();
+</script>
+</body>
+</html>
