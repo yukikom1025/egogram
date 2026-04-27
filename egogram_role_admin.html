@@ -173,6 +173,19 @@ tr:hover td{background:#faf8f4}
   </div>
 </div>
 
+<!-- インポートエリア -->
+<div id="drop-zone" style="margin:16px 24px;border:2px dashed #b2d8c8;border-radius:10px;background:#f0f9f5;padding:18px 24px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s"
+  onclick="document.getElementById('csv-file-input').click()"
+  ondragover="event.preventDefault();this.style.background='#d4efe6';this.style.borderColor='#2c7a50'"
+  ondragleave="this.style.background='#f0f9f5';this.style.borderColor='#b2d8c8'"
+  ondrop="handleDrop(event)">
+  <div style="font-size:32px;line-height:1">📂</div>
+  <div>
+    <div style="font-size:13px;font-weight:700;color:#1a7a4a">回答データ（JSONファイル）をここにドラッグ＆ドロップ</div>
+    <div style="font-size:11px;color:#6a9a85;margin-top:3px">クリックしてファイルを選択することもできます　／　複数ファイルを一括インポート可</div>
+  </div>
+</div>
+
 <!-- タブ -->
 <div class="tabs">
   <div class="tab active" onclick="switchTab('overview')">📊 概要</div>
@@ -1267,6 +1280,49 @@ function exportCSV(){
 // ===== CSV/JSON インポート =====
 function importCSV(){ document.getElementById('csv-file-input').click(); }
 
+function handleDrop(event){
+  event.preventDefault();
+  var zone = document.getElementById('drop-zone');
+  zone.style.background = '#f0f9f5';
+  zone.style.borderColor = '#b2d8c8';
+  var files = event.dataTransfer.files;
+  var input = document.getElementById('csv-file-input');
+  // 複数ファイルを順番に処理
+  var fileList = Array.from(files).filter(function(f){ return f.name.endsWith('.json') || f.name.endsWith('.csv'); });
+  if(fileList.length === 0){ alert('JSONまたはCSVファイルをドロップしてください。'); return; }
+  importFiles(fileList);
+}
+
+function importFiles(files){
+  var h = loadHistory();
+  var totalImported = 0;
+  var processed = 0;
+  files.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        var text = e.target.result;
+        if(file.name.endsWith('.json')){
+          var data = JSON.parse(text);
+          var records = Array.isArray(data) ? data : [data];
+          records.forEach(function(s){
+            if(!s.name || !s.date || !s.scores) return;
+            var dup = h.find(function(x){ return x.name===s.name && x.date===s.date; });
+            if(!dup){ h.push(s); totalImported++; }
+          });
+        }
+      } catch(err){ console.error(err); }
+      processed++;
+      if(processed === files.length){
+        saveHistory(h);
+        alert(totalImported+'件のデータをインポートしました。');
+        refreshData();
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
 function handleFileImport(event){
   var file = event.target.files[0];
   if(!file) return;
@@ -1276,18 +1332,24 @@ function handleFileImport(event){
     try {
       if(file.name.endsWith('.json')){
         var data = JSON.parse(text);
-        if(Array.isArray(data)){
-          var h = loadHistory();
-          var imported = 0;
-          data.forEach(function(s){
-            // 重複チェック（名前＋日付）
-            var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
-            if(!dup){ h.push(s); imported++; }
-          });
-          saveHistory(h);
-          alert(imported+'件のデータをインポートしました。');
-          refreshData();
-        }
+        // 単体レコード（回答フォームの出力）と配列の両方に対応
+        var records = Array.isArray(data) ? data : [data];
+        var h = loadHistory();
+        var imported = 0;
+        records.forEach(function(s){
+          if(!s.name || !s.date || !s.scores) return;
+          var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
+          if(!dup){ h.push(s); imported++; }
+          else {
+            if(confirm(s.name+'（'+s.date+'）は既に存在します。上書きしますか？')){
+              var idx = h.findIndex(function(x){return x.name===s.name&&x.date===s.date;});
+              h[idx] = s; imported++;
+            }
+          }
+        });
+        saveHistory(h);
+        alert(imported+'件のデータをインポートしました。');
+        refreshData();
       } else {
         // CSV
         var lines = text.replace(/^\uFEFF/,'').split('\n').slice(1);
