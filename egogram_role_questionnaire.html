@@ -712,23 +712,85 @@ function renderConfirm(main, nav){
 function renderComplete(main, nav){
   var filename = 'egogram_' + state.savedName + '_' + state.savedDate + '.json';
 
+  // スコア行を生成（グループ番号のみ表示・軸名は非表示）
+  var groupNums = ['①','②','③','④','⑤','⑥'];
+  var scoreRows = groupNums.map(function(num, i){
+    var score = calcEgoScore(i);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e8e4dc">'+
+      '<span style="font-size:13px;color:var(--mid)">グループ '+num+'</span>'+
+      '<span style="font-size:16px;font-weight:700;color:var(--ink)">'+score+' <span style="font-size:11px;font-weight:400;color:var(--light)">/20</span></span>'+
+    '</div>';
+  }).join('');
+
+  // 価値観スコア行
+  var hasValues = !state.skipValues && state.vAnswers.some(function(g){
+    return g.some(function(v){ return v !== null; });
+  });
+  var valRows = '';
+  if(hasValues){
+    var vLabels = ['問A','問B','問C','問D','問E'];
+    valRows = '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #e8e4dc">'+
+      '<div style="font-size:11px;color:var(--light);margin-bottom:6px">価値観テスト</div>'+
+      vLabels.map(function(lbl, i){
+        var avg = calcValueAvg(i);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #e8e4dc">'+
+          '<span style="font-size:13px;color:var(--mid)">'+lbl+'</span>'+
+          '<span style="font-size:16px;font-weight:700;color:var(--ink)">'+avg+' <span style="font-size:11px;font-weight:400;color:var(--light)">/5</span></span>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }
+
   main.innerHTML =
     '<div class="card complete-card">'+
       '<div class="complete-icon">✅</div>'+
       '<div class="complete-title">回答が完了しました</div>'+
-      '<div class="complete-sub">ご回答いただきありがとうございました。</div>'+
-      '<div style="background:#f0f7f4;border:1px solid #b2d8c8;border-radius:10px;padding:20px;margin:16px 0;text-align:left">'+
-        '<div style="font-size:13px;font-weight:700;color:#1a7a4a;margin-bottom:12px">📂 担当者へのデータ送付</div>'+
-        '<div style="font-size:13px;color:#2c5a45;line-height:2;margin-bottom:16px">'+
-          '① 下のボタンを押してファイルをダウンロード<br>'+
-          '② ダウンロードしたファイルを担当者にLINEまたはメールで送付'+
-        '</div>'+
-        '<button onclick="downloadJSON()" style="width:100%;padding:14px;background:#1a7a4a;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:\'Noto Sans JP\',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">'+
-          '📂 データファイルをダウンロード'+
-        '</button>'+
-        '<div style="font-size:11px;color:#6a9a85;margin-top:8px;text-align:center">ファイル名：'+escH(filename)+'</div>'+
+      '<div class="complete-sub">ご回答いただきありがとうございました。<br>以下のいずれかの方法でデータを担当者にお送りください。</div>'+
+    '</div>'+
+
+    // ── 方法A：ファイル送付 ──
+    '<div class="card" style="border:2px solid #b2d8c8">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<div style="background:#1a7a4a;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">A</div>'+
+        '<div style="font-size:14px;font-weight:700;color:#1a7a4a">ファイルで送る（おすすめ）</div>'+
       '</div>'+
-      '<div style="font-size:12px;color:var(--light)">ファイルを送付後、この画面は閉じていただいて構いません。</div>'+
+      '<div style="font-size:12px;color:var(--mid);line-height:2;margin-bottom:14px">'+
+        '① 下のボタンを押してファイルをダウンロード<br>'+
+        '② ダウンロードしたファイルをLINE・メールで担当者に送付'+
+      '</div>'+
+      '<button onclick="downloadJSON()" style="width:100%;padding:13px;background:#1a7a4a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:\'Noto Sans JP\',sans-serif;cursor:pointer">'+
+        '📂 データファイルをダウンロード'+
+      '</button>'+
+      '<div style="font-size:10px;color:#6a9a85;margin-top:6px;text-align:center">'+escH(filename)+'</div>'+
+    '</div>'+
+
+    // ── 方法B：スクリーンショット ──
+    '<div class="card" style="border:2px solid #c8d4e8">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<div style="background:#2c5282;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">B</div>'+
+        '<div style="font-size:14px;font-weight:700;color:#2c5282">スクリーンショットで送る</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--mid);line-height:2;margin-bottom:14px">'+
+        '① 下のスコア表示を画面に表示したままスクリーンショット<br>'+
+        '② そのままLINE・メールで担当者に送付'+
+      '</div>'+
+      // スクリーンショット用スコアカード
+      '<div id="score-card" style="background:#fffef9;border:1px solid var(--border);border-radius:8px;padding:16px 18px">'+
+        '<div style="font-size:10px;letter-spacing:.1em;color:var(--light);margin-bottom:10px">エゴグラム 回答スコア</div>'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:2px solid #e8e4dc">'+
+          '<div>'+
+            '<div style="font-size:12px;color:var(--light)">氏名</div>'+
+            '<div style="font-size:15px;font-weight:700">'+escH(state.savedName)+'</div>'+
+          '</div>'+
+          '<div style="text-align:right">'+
+            '<div style="font-size:12px;color:var(--light)">実施日</div>'+
+            '<div style="font-size:15px;font-weight:700">'+escH(state.savedDate)+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:11px;color:var(--light);margin-bottom:6px">交流分析</div>'+
+        scoreRows+
+        valRows+
+      '</div>'+
     '</div>';
 
   nav.innerHTML =
