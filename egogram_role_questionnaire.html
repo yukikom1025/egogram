@@ -446,15 +446,21 @@ function renderStep0(main, nav){
         '<div class="field-label">メモ（任意）</div>'+
         '<input class="field-input" id="f-memo" type="text" placeholder="例：研修3ヶ月後" value="'+escH(state.memo)+'">'+
       '</div>'+
-      '<div class="field-row">'+
-        '<div class="field-label">グループ</div>'+
-        '<div class="group-row">'+
-          '<div class="field-row" style="margin-bottom:0;flex:1">'+
-            '<select class="field-input field-select" id="f-group">'+groupOptions+'</select>'+
-          '</div>'+
-          '<button class="group-add-btn" onclick="addGroup()">＋新規</button>'+
-        '</div>'+
-      '</div>'+
+      (state._groupLocked
+        ? '<div class="field-row">'+
+            '<div class="field-label">グループ</div>'+
+            '<div style="background:rgba(44,122,80,0.08);border:1px solid rgba(44,122,80,0.25);border-radius:7px;padding:9px 12px;font-size:13px;font-weight:700;color:#1a7a4a">'+escH(state.group)+'</div>'+
+          '</div>'
+        : '<div class="field-row">'+
+            '<div class="field-label">グループ</div>'+
+            '<div class="group-row">'+
+              '<div class="field-row" style="margin-bottom:0;flex:1">'+
+                '<select class="field-input field-select" id="f-group">'+groupOptions+'</select>'+
+              '</div>'+
+              '<button class="group-add-btn" onclick="addGroup()">＋新規</button>'+
+            '</div>'+
+          '</div>'
+      )+
     '</div>';
 
   nav.innerHTML =
@@ -818,6 +824,7 @@ function downloadJSON(){
     date:    state.savedDate,
     memo:    state.memo,
     role:    state.role,
+    group:   state.group || '',
     scores:  scores,
     savedAt: new Date().toISOString()
   };
@@ -1046,8 +1053,13 @@ function showToast(msg){
 // URLパラメータからグループを取得
 var urlP = new URLSearchParams(window.location.search);
 var urlG = urlP.get('group');
-if(urlG !== null){ state.group = urlG; }
-else { state.group = sessionStorage.getItem(SESSION_GROUP_KEY) || ''; }
+if(urlG !== null){
+  state.group = urlG;
+  state._groupLocked = true;  // URLで指定されたグループは変更不可
+} else {
+  state.group = sessionStorage.getItem(SESSION_GROUP_KEY) || '';
+  state._groupLocked = false;
+}
 
 // ナビリンクにグループパラメータを付与
 var navInput = document.getElementById('nav-input');

@@ -1294,9 +1294,9 @@ function handleDrop(event){
 }
 
 function importFiles(files){
-  var h = loadHistory();
   var totalImported = 0;
   var processed = 0;
+
   files.forEach(function(file){
     var reader = new FileReader();
     reader.onload = function(e){
@@ -1307,16 +1307,37 @@ function importFiles(files){
           var records = Array.isArray(data) ? data : [data];
           records.forEach(function(s){
             if(!s.name || !s.date || !s.scores) return;
+
+            // JSONにgroupが含まれていればそのグループに、なければ現在のグループに保存
+            var targetGroup = (s.group !== undefined && s.group !== null) ? s.group : currentGroup;
+            var targetKey = targetGroup ? getGroupKey(targetGroup) : 'egogram_role_history_v1';
+
+            // グループが存在しなければグループリストに追加
+            if(targetGroup){
+              var groups = loadGroups();
+              if(groups.indexOf(targetGroup) < 0){
+                groups.push(targetGroup);
+                saveGroups(groups);
+              }
+            }
+
+            var h = loadHistory(targetKey);
             var dup = h.find(function(x){ return x.name===s.name && x.date===s.date; });
-            if(!dup){ h.push(s); totalImported++; }
+            if(!dup){
+              // groupフィールドは保存データには不要なので除去
+              var entry = {name:s.name, date:s.date, memo:s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
+              h.push(entry);
+              localStorage.setItem(targetKey, JSON.stringify(h));
+              totalImported++;
+            }
           });
         }
       } catch(err){ console.error(err); }
       processed++;
       if(processed === files.length){
-        saveHistory(h);
         alert(totalImported+'件のデータをインポートしました。');
         refreshData();
+        renderGroupSelect();
       }
     };
     reader.readAsText(file);
@@ -1332,24 +1353,29 @@ function handleFileImport(event){
     try {
       if(file.name.endsWith('.json')){
         var data = JSON.parse(text);
-        // 単体レコード（回答フォームの出力）と配列の両方に対応
         var records = Array.isArray(data) ? data : [data];
-        var h = loadHistory();
         var imported = 0;
         records.forEach(function(s){
           if(!s.name || !s.date || !s.scores) return;
-          var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
-          if(!dup){ h.push(s); imported++; }
-          else {
-            if(confirm(s.name+'（'+s.date+'）は既に存在します。上書きしますか？')){
-              var idx = h.findIndex(function(x){return x.name===s.name&&x.date===s.date;});
-              h[idx] = s; imported++;
-            }
+          var targetGroup = (s.group !== undefined && s.group !== null) ? s.group : currentGroup;
+          var targetKey = targetGroup ? getGroupKey(targetGroup) : 'egogram_role_history_v1';
+          if(targetGroup){
+            var groups = loadGroups();
+            if(groups.indexOf(targetGroup) < 0){ groups.push(targetGroup); saveGroups(groups); }
           }
+          var h = loadHistory(targetKey);
+          var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
+          var entry = {name:s.name, date:s.date, memo:s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
+          if(!dup){ h.push(entry); imported++; }
+          else if(confirm(s.name+'（'+s.date+'）は既に存在します。上書きしますか？')){
+            var idx = h.findIndex(function(x){return x.name===s.name&&x.date===s.date;});
+            h[idx] = entry; imported++;
+          }
+          localStorage.setItem(targetKey, JSON.stringify(h));
         });
-        saveHistory(h);
         alert(imported+'件のデータをインポートしました。');
         refreshData();
+        renderGroupSelect();
       } else {
         // CSV
         var lines = text.replace(/^\uFEFF/,'').split('\n').slice(1);
