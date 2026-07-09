@@ -905,7 +905,9 @@ function goNext(){
     state.date  = document.getElementById('f-date').value;
     state.role  = document.getElementById('f-role').value;
     state.memo  = document.getElementById('f-memo').value.trim();
-    state.group = document.getElementById('f-group').value;
+    if(!state._groupLocked){
+      state.group = document.getElementById('f-group').value;
+    }
   }
   if(!validateStep()) return;
   state.step++;
