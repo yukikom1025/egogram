@@ -337,6 +337,7 @@ var STORAGE_KEY       = 'egogram_role_history_v1';
 
 function getGroupKey(g){ return g ? 'egogram_role_group_'+g : 'egogram_role_history_v1'; }
 function loadGroups(){ try{return JSON.parse(localStorage.getItem(GROUP_LIST_KEY))||[];}catch(e){return[];} }
+function saveGroups(a){ localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(a)); }
 
 function getCurrentGroup(){
   var urlP = new URLSearchParams(window.location.search);
@@ -360,8 +361,8 @@ var adminSortDir = -1;
 var adminExpanded = {};
 
 // ===== データ読み込み =====
-function loadHistory(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[]; }
+function loadHistory(key){
+  try{ return JSON.parse(localStorage.getItem(key||STORAGE_KEY))||[]; }
   catch(e){ return []; }
 }
 function saveHistory(h){
