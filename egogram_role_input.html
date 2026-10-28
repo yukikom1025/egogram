@@ -157,15 +157,16 @@ tr:hover td{background:#faf8f4}
       <div class="field-group">
         <div class="field-row">
           <div class="field-label">氏名 <span style="color:#e57a6a">＊</span></div>
-          <input class="field-input" id="name" type="text" placeholder="例：山田 太郎" oninput="onNameChange()">
+          <input class="field-input" id="fname" type="text" placeholder="例：山田 太郎" oninput="onNameChange()" list="name-suggestions" autocomplete="new-password">
+          <datalist id="name-suggestions"></datalist>
         </div>
         <div class="field-row">
           <div class="field-label">実施日 <span style="color:#e57a6a">＊</span></div>
           <input class="field-input" id="date" type="date">
         </div>
         <div class="field-row">
-          <div class="field-label">メモ（任意）</div>
-          <input class="field-input" id="memo" type="text" placeholder="例：研修3ヶ月後 / 異動後">
+          <div class="field-label">所属・部署（任意）</div>
+          <input class="field-input" id="dept" type="text" placeholder="例：営業部 / 第1課">
         </div>
         <div class="field-row">
           <div class="field-label">役職区分 <span style="color:#e57a6a">＊</span></div>
@@ -334,7 +335,7 @@ tr:hover td{background:#faf8f4}
             <th id="th-name" onclick="sortBy('name')">氏名</th>
             <th id="th-count" onclick="sortBy('count')">回数</th>
             <th id="th-date" onclick="sortBy('date')">実施日</th>
-            <th>メモ</th>
+            <th>所属・部署</th>
             <th id="th-role" onclick="sortBy('role')">役職</th>
             <th style="color:var(--cp)" onclick="sortBy('cp')" id="th-cp">CP</th>
             <th style="color:var(--np)" onclick="sortBy('np')" id="th-np">NP</th>
@@ -397,6 +398,7 @@ function setGroup(g){
   renderGroupSelect();
   renderAll();
   onNameChange();
+  updateNameSuggestions();
 }
 
 function renderGroupSelect(){
@@ -477,9 +479,22 @@ function getScores(){
   return base;
 }
 
+// ===== 氏名サジェスト更新 =====
+function updateNameSuggestions(){
+  var h = loadHistory();
+  var seen = {};
+  var names = [];
+  h.forEach(function(s){ if(s.name && !seen[s.name]){ seen[s.name]=true; names.push(s.name); } });
+  names.sort();
+  var dl = document.getElementById('name-suggestions');
+  if(dl) dl.innerHTML = names.map(function(n){
+    return '<option value="'+n.replace(/"/g,'&quot;')+'">';
+  }).join('');
+}
+
 // ===== 氏名変更時：直近データプレビュー =====
 function onNameChange(){
-  var name = document.getElementById('name').value.trim();
+  var name = document.getElementById('fname').value.trim();
   var box  = document.getElementById('prev-box');
   if(!name){box.style.display='none';return;}
   var h = loadHistory();
@@ -496,7 +511,7 @@ function onNameChange(){
       }).join('  ')
     : '';
   document.getElementById('prev-body').innerHTML =
-    '直近：<strong style="color:#fff">'+latest.date+'</strong>'+(latest.memo?' <span style="opacity:.6">('+latest.memo+')</span>':'')+
+    '直近：<strong style="color:#fff">'+latest.date+'</strong>'+((latest.dept||latest.memo)?' <span style="opacity:.6">'+(latest.dept||latest.memo)+'</span>':'')+
     '　全'+recs.length+'件'+(latest.role ? '　<span style="opacity:.9">【'+latest.role+'】</span>' : '')+'<br>'+
     ['cp','np','a','fc','ac'].map(function(k){
       return '<span style="color:'+clr[k]+';font-weight:700">'+k.toUpperCase()+' '+s[k]+'</span>';
@@ -505,9 +520,9 @@ function onNameChange(){
 
 // ===== 保存 =====
 function saveEntry(){
-  var name   = document.getElementById('name').value.trim();
+  var name   = document.getElementById('fname').value.trim();
   var date   = document.getElementById('date').value;
-  var memo   = document.getElementById('memo').value.trim();
+  var memo   = document.getElementById('dept').value.trim();
   var role   = document.getElementById('role').value;
   var scores = getScores();
 
@@ -517,7 +532,7 @@ function saveEntry(){
 
   var h   = loadHistory();
   var idx = h.findIndex(function(s){return s.name===name && s.date===date;});
-  var entry = {name:name, date:date, memo:memo, role:role, scores:scores, savedAt:new Date().toISOString()};
+  var entry = {name:name, date:date, dept:memo, role:role, scores:scores, savedAt:new Date().toISOString()};
 
   if(idx>=0){
     // 編集モードの場合はそのまま上書き、それ以外は確認
@@ -533,10 +548,11 @@ function saveEntry(){
   saveHistoryData(h);
   clearEditMode();
   renderAll();
+  updateNameSuggestions();
   onNameChange();
   showToast(name, date);
 
-  document.getElementById('memo').value='';
+  document.getElementById('dept').value='';
   document.getElementById('role').value='';
   ['cp','np','a','fc','ac'].forEach(function(k){sync(k,10);});
   ['a','b','c','d','e'].forEach(function(k){syncVal(k,3);});
@@ -702,7 +718,7 @@ function renderTable(persons){
     // メモ
     var td3 = document.createElement('td');
     td3.style.cssText = 'color:var(--light);font-size:11px';
-    td3.textContent = s.memo || '—';
+    td3.textContent = s.dept || s.memo || '—';
     tr.appendChild(td3);
 
     // 役職
@@ -788,7 +804,7 @@ function renderTable(persons){
 
         var htd3 = document.createElement('td');
         htd3.style.cssText = 'color:var(--light);font-size:11px';
-        htd3.textContent = ps.memo || '—';
+        htd3.textContent = ps.dept || ps.memo || '—';
         htr.appendChild(htd3);
 
         var htdRole = document.createElement('td');
@@ -836,6 +852,7 @@ function deleteEntry(name, date){
   var h = loadHistory().filter(function(s){return!(s.name===name&&s.date===date);});
   saveHistoryData(h);
   renderAll();
+  updateNameSuggestions();
   onNameChange();
 }
 
@@ -849,9 +866,9 @@ function loadForEdit(name, date){
   _editingKey = {name: name, date: date};
 
   // フォームに値をセット
-  document.getElementById('name').value = rec.name;
+  document.getElementById('fname').value = rec.name;
   document.getElementById('date').value = rec.date;
-  document.getElementById('memo').value = rec.memo || '';
+  document.getElementById('dept').value = rec.dept || rec.memo || '';
   document.getElementById('role').value = rec.role || '';
 
   var s = rec.scores;
@@ -937,7 +954,7 @@ function openAnalysisReportFor(name, date){
     ? (recs.find(function(s){ return s.date===date; }) || recs[recs.length-1])
     : recs[recs.length-1];
   localStorage.setItem('egogram_role_temp_report', JSON.stringify({
-    name: name, date: target.date, dept: target.memo||'', role: target.role||'', scores: target.scores, ts: Date.now()
+    name: name, date: target.date, dept: target.dept||target.memo||'', role: target.role||'', scores: target.scores, ts: Date.now()
   }));
   window.open('egogram_role_report.html?from=input');
 }

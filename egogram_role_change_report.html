@@ -663,7 +663,7 @@ function renderHistoryList() {
     var realIdx = filtered.length - 1 - i;
     return '<div class="history-item" onclick="loadSession('+realIdx+')">' +
       '<div>' +
-        '<div class="history-date">第'+(realIdx+1)+'回　'+s.date+(s.memo?' — '+s.memo:'')+'</div>' +
+        '<div class="history-date">第'+(realIdx+1)+'回　'+s.date+((s.dept||s.memo)?' — '+(s.dept||s.memo):'')+'</div>' +
         '<div class="history-scores">CP:'+s.scores.cp+' NP:'+s.scores.np+' A:'+s.scores.a+' FC:'+s.scores.fc+' AC:'+s.scores.ac+'</div>' +
       '</div>' +
       '<span class="history-del" onclick="event.stopPropagation();deleteSession('+realIdx+')">削除</span>' +
@@ -678,7 +678,7 @@ function loadSession(idx) {
   if (!filtered[idx]) return;
   var s = filtered[idx];
   document.getElementById('date').value = s.date;
-  document.getElementById('memo').value = s.memo || '';
+  document.getElementById('memo').value = (s.dept||s.memo) || '';
   if (document.getElementById('role')) document.getElementById('role').value = s.role || '';
   ['cp','np','a','fc','ac'].forEach(function(k){ syncScore(k, s.scores[k]); });
 }
@@ -738,11 +738,11 @@ function generateReport(history) {
   // ヘッダー：直近・前回の実施日を明示
   var dateInfoHtml = prev
     ? '前回：<span style="font-weight:600;color:rgba(255,255,255,0.85)">'+formatDate(prev.date)+'</span>'
-      +(prev.memo?'<span style="font-size:10px;opacity:.55"> ('+prev.memo+')</span>':'')
+      +((prev.dept||prev.memo)?'<span style="font-size:10px;opacity:.55"> ('+(prev.dept||prev.memo)+')</span>':'')
       +'<br>直近：<span style="font-weight:600;color:#fff">'+formatDate(curr.date)+'</span>'
-      +(curr.memo?'<span style="font-size:10px;opacity:.55"> ('+curr.memo+')</span>':'')
+      +((curr.dept||curr.memo)?'<span style="font-size:10px;opacity:.55"> ('+(curr.dept||curr.memo)+')</span>':'')
     : '直近：<span style="font-weight:600;color:#fff">'+formatDate(curr.date)+'</span>'
-      +(curr.memo?'<span style="font-size:10px;opacity:.55"> ('+curr.memo+')</span>':'');
+      +((curr.dept||curr.memo)?'<span style="font-size:10px;opacity:.55"> ('+(curr.dept||curr.memo)+')</span>':'');
 
   var currRole = curr.role || '';
   var roleBadgeHtml = currRole ? ' <span style="display:inline-block;background:'+(currRole==='管理職'?'#dce9f7':currRole==='若手'?'#fef6e4':'#e8f5e9')+';color:'+(currRole==='管理職'?'#1a3a7a':currRole==='若手'?'#7a4f0a':'#1a5c34')+';border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700">'+currRole+'</span>' : '';
@@ -780,14 +780,14 @@ function generateReport(history) {
   dateBar += '<div style="display:flex;align-items:center;gap:8px">';
   dateBar += '<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8888aa">前回</span>';
   dateBar += '<span style="font-size:13px;font-weight:700;color:var(--ink)">'+formatDate(prev.date)+'</span>';
-  if(prev.memo) dateBar += '<span style="font-size:11px;color:var(--light)">('+prev.memo+')</span>';
+  if((prev.dept||prev.memo)) dateBar += '<span style="font-size:11px;color:var(--light)">('+(prev.dept||prev.memo)+')</span>';
   dateBar += '<span style="font-size:11px;color:var(--light)">第'+(history.length-1)+'回</span>';
   dateBar += '</div>';
   dateBar += '<div style="color:#d4d0c8;font-size:16px">→</div>';
   dateBar += '<div style="display:flex;align-items:center;gap:8px">';
   dateBar += '<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#2c7a50">直近</span>';
   dateBar += '<span style="font-size:13px;font-weight:700;color:var(--ink)">'+formatDate(curr.date)+'</span>';
-  if(curr.memo) dateBar += '<span style="font-size:11px;color:var(--light)">('+curr.memo+')</span>';
+  if((curr.dept||curr.memo)) dateBar += '<span style="font-size:11px;color:var(--light)">('+(curr.dept||curr.memo)+')</span>';
   dateBar += '<span style="font-size:11px;color:var(--light)">第'+history.length+'回</span>';
   dateBar += '</div>';
   // 間隔日数

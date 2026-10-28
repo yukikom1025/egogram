@@ -443,8 +443,8 @@ function renderStep0(main, nav){
         '</select>'+
       '</div>'+
       '<div class="field-row">'+
-        '<div class="field-label">メモ（任意）</div>'+
-        '<input class="field-input" id="f-memo" type="text" placeholder="例：研修3ヶ月後" value="'+escH(state.memo)+'">'+
+        '<div class="field-label">所属・部署（任意）</div>'+
+        '<input class="field-input" id="f-memo" type="text" placeholder="例：営業部 / 第1課" value="'+escH(state.memo)+'">'+
       '</div>'+
       (state._groupLocked
         ? '<div class="field-row">'+
@@ -699,7 +699,7 @@ function renderConfirm(main, nav){
       '<div class="confirm-field"><span class="confirm-label">氏名</span><span class="confirm-value">'+escH(state.name)+'</span></div>'+
       '<div class="confirm-field"><span class="confirm-label">実施日</span><span class="confirm-value">'+escH(state.date)+'</span></div>'+
       '<div class="confirm-field"><span class="confirm-label">役職</span><span class="confirm-value">'+escH(state.role)+'</span></div>'+
-      (state.memo ? '<div class="confirm-field"><span class="confirm-label">メモ</span><span class="confirm-value">'+escH(state.memo)+'</span></div>' : '')+
+      (state.memo ? '<div class="confirm-field"><span class="confirm-label">所属・部署</span><span class="confirm-value">'+escH(state.memo)+'</span></div>' : '')+
       (state.group ? '<div class="confirm-field"><span class="confirm-label">グループ</span><span class="confirm-value">'+escH(state.group)+'</span></div>' : '')+
     '</div>'+
     '<div class="card">'+
@@ -822,7 +822,7 @@ function downloadJSON(){
   var entry = {
     name:    state.savedName,
     date:    state.savedDate,
-    memo:    state.memo,
+    dept:    state.memo,
     role:    state.role,
     group:   state.group || '',
     scores:  scores,
@@ -949,7 +949,7 @@ function saveData(){
   var entry = {
     name:    state.name,
     date:    state.date,
-    memo:    state.memo,
+    dept:    state.memo,
     role:    state.role,
     scores:  scores,
     savedAt: new Date().toISOString()
@@ -986,7 +986,7 @@ function openReport(){
   localStorage.setItem('egogram_role_temp_report', JSON.stringify({
     name:   state.savedName,
     date:   target.date,
-    dept:   target.memo || '',
+    dept:   target.dept || target.memo || '',
     role:   target.role || '',
     scores: target.scores,
     ts:     Date.now()

@@ -187,11 +187,14 @@ tr:hover td{background:#faf8f4}
 </div>
 
 <!-- タブ -->
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('overview')">📊 概要</div>
-  <div class="tab" onclick="switchTab('list')">📋 一覧表</div>
-  <div class="tab" onclick="switchTab('concern')">⚠️ 要注意リスト</div>
-  <div class="tab" onclick="switchTab('distribution')">📈 タイプ分布</div>
+<div class="tabs" style="display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex">
+    <div class="tab active" onclick="switchTab('overview')">📊 概要</div>
+    <div class="tab" onclick="switchTab('list')">📋 一覧表</div>
+    <div class="tab" onclick="switchTab('concern')">⚠️ 要注意リスト</div>
+    <div class="tab" onclick="switchTab('distribution')">📈 タイプ分布</div>
+  </div>
+  <button class="btn btn-white" onclick="printSummaryReport()" style="font-size:11px;padding:5px 14px;margin-right:16px;white-space:nowrap">🖨️ 総合レポートを印刷</button>
 </div>
 
 <div class="content">
@@ -215,7 +218,7 @@ tr:hover td{background:#faf8f4}
     </div>
     <div class="chart-card-full" id="roleCompareCard">
       <div class="chart-title">役職別 平均スコア比較</div>
-      <div style="position:relative;height:220px"><canvas id="roleCompareChart"></canvas></div>
+      <div style="position:relative;height:380px"><canvas id="roleCompareChart"></canvas></div>
     </div>
   </div>
 
@@ -233,11 +236,13 @@ tr:hover td{background:#faf8f4}
             <option value="若手">若手</option>
           </select>
           <button class="btn btn-white" onclick="exportCSV()" style="font-size:11px">CSVで出力</button>
+          <button class="btn btn-white" id="batch-print-btn" onclick="startBatchPrint()" style="font-size:11px" disabled>選択した人を一括PDF保存 (0)</button>
         </div>
       </div>
       <table id="main-table">
         <thead>
           <tr>
+            <th style="width:26px"><input type="checkbox" id="batch-select-all" onclick="toggleBatchSelectAll(this.checked)" title="このページの全員を選択/解除"></th>
             <th id="th-name"  onclick="adminSortBy('name')"  style="cursor:pointer">氏名</th>
             <th id="th-count" onclick="adminSortBy('count')" style="cursor:pointer">回数</th>
             <th id="th-date"  onclick="adminSortBy('date')"  style="cursor:pointer">最終日</th>
@@ -337,7 +342,6 @@ var STORAGE_KEY       = 'egogram_role_history_v1';
 
 function getGroupKey(g){ return g ? 'egogram_role_group_'+g : 'egogram_role_history_v1'; }
 function loadGroups(){ try{return JSON.parse(localStorage.getItem(GROUP_LIST_KEY))||[];}catch(e){return[];} }
-function saveGroups(a){ localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(a)); }
 
 function getCurrentGroup(){
   var urlP = new URLSearchParams(window.location.search);
@@ -358,11 +362,12 @@ var currentPage = 1;
 var allPersons = [];
 var adminSortKey = 'date';
 var adminSortDir = -1;
+var batchSelected = {};
 var adminExpanded = {};
 
 // ===== データ読み込み =====
 function loadHistory(key){
-  try{ return JSON.parse(localStorage.getItem(key||STORAGE_KEY))||[]; }
+  try{ return JSON.parse(localStorage.getItem(key || STORAGE_KEY))||[]; }
   catch(e){ return []; }
 }
 function saveHistory(h){
@@ -485,7 +490,7 @@ function renderOverview(){
     window._typeChart = new Chart(tc,{
       type:'doughnut',
       data:{
-        labels:typeEntries.map(function(e){return e[0]+'タイプ';}),
+        labels:typeEntries.map(function(e){return e[0];}),
         datasets:[{data:typeEntries.map(function(e){return e[1];}),
           backgroundColor:['#1a1a2e','#2c5282','#2c7a50','#b7791f','#6b46a0','#c0392b','#4a7a9b','#8a6a30'],
           borderWidth:2,borderColor:'#fffef9'}]
@@ -594,6 +599,15 @@ function renderRoleCompareChart(persons) {
   if (card) card.style.display = hasAny ? '' : 'none';
   if (!hasAny) return;
 
+  // 実データの最大値から Y 軸上限を動的に設定（棒が枠を使い切るように）
+  var allVals = [];
+  datasets.forEach(function(ds) {
+    ds.data.forEach(function(v) { if (v !== null) allVals.push(v); });
+  });
+  var dataMax = allVals.length > 0 ? Math.max.apply(null, allVals) : 20;
+  var yMax = Math.min(20, Math.ceil((dataMax + 1) / 4) * 4);
+  var stepSize = yMax <= 12 ? 2 : yMax <= 16 ? 4 : 5;
+
   if (window._roleCompareChart) window._roleCompareChart.destroy();
   var el = document.getElementById('roleCompareChart');
   if (!el) return;
@@ -607,8 +621,8 @@ function renderRoleCompareChart(persons) {
         legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } }
       },
       scales: {
-        y: { min: 0, max: 20, ticks: { stepSize: 5, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
-        x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        y: { min: 0, max: yMax, ticks: { stepSize: stepSize, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+        x: { ticks: { font: { size: 13 } }, grid: { display: false } }
       }
     }
   });
@@ -679,7 +693,7 @@ function renderTable(){
 
   var tbody = document.getElementById('table-body');
   if(slice.length===0){
-    tbody.innerHTML='<tr class="empty-row"><td colspan="15">データがありません</td></tr>';
+    tbody.innerHTML='<tr class="empty-row"><td colspan="16">データがありません</td></tr>';
   } else {
     var html = '';
     slice.forEach(function(p){
@@ -714,9 +728,10 @@ function renderTable(){
 
       // メイン行
       html += '<tr style="background:#fff">'
+        + '<td><input type="checkbox" class="batch-chk" data-name="'+p.name+'" '+(batchSelected[p.name]?'checked':'')+' onclick="toggleBatchSelect(\''+p.name.replace(/'/g,"\\'")+'\', this.checked)"></td>'
         + '<td>'+expandBtn+'<strong>'+p.name+'</strong></td>'
         + '<td>'+countBadge+'</td>'
-        + '<td>'+latest.date+(latest.memo?'<br><small style="color:var(--light)">'+latest.memo+'</small>':'')+'</td>'
+        + '<td>'+latest.date+((latest.dept||latest.memo)?'<br><small style="color:var(--light)">'+(latest.dept||latest.memo)+'</small>':'')+'</td>'
         + '<td>'+roleHtml(latest.role)+'</td>'
         + '<td><span class="type-badge">'+tn+'</span></td>'
         + '<td>'+sp('cp')+'</td><td>'+sp('np')+'</td><td>'+sp('a')+'</td><td>'+sp('fc')+'</td><td>'+sp('ac')+'</td>'
@@ -743,9 +758,10 @@ function renderTable(){
           var ps_tot = ps.scores.cp+ps.scores.np+ps.scores.a+ps.scores.fc+ps.scores.ac;
           function sp2(k){ return '<span class="score-pill" style="background:'+sc[k]+'22;color:'+sc[k]+'">'+ps.scores[k]+'</span>'; }
           html += '<tr style="background:#faf8f4">'
+            + '<td></td>'
             + '<td style="padding-left:32px;color:var(--light);font-size:11px">第'+nth+'回</td>'
             + '<td><span style="font-size:10px;color:var(--light)">過去</span></td>'
-            + '<td style="font-size:11px">'+ps.date+(ps.memo?'<br><small style="color:var(--light)">'+ps.memo+'</small>':'')+'</td>'
+            + '<td style="font-size:11px">'+ps.date+((ps.dept||ps.memo)?'<br><small style="color:var(--light)">'+(ps.dept||ps.memo)+'</small>':'')+'</td>'
             + '<td>'+roleHtml(ps.role)+'</td>'
             + '<td>—</td>'
             + '<td>'+sp2('cp')+'</td><td>'+sp2('np')+'</td><td>'+sp2('a')+'</td><td>'+sp2('fc')+'</td><td>'+sp2('ac')+'</td>'
@@ -762,6 +778,7 @@ function renderTable(){
     });
     tbody.innerHTML = html;
   }
+  updateBatchButton();
 
   // ページネーション
   var pag = document.getElementById('pagination');
@@ -806,7 +823,7 @@ function renderConcernList(){
       '<div class="concern-item-header">'+
         '<div>'+
           '<div class="concern-name">'+p.name+'</div>'+
-          '<div class="concern-date">最終テスト：'+latest.date+(latest.memo?' ('+latest.memo+')':'')+'　第'+p.sessions.length+'回</div>'+
+          '<div class="concern-date">最終テスト：'+latest.date+((latest.dept||latest.memo)?' ('+(latest.dept||latest.memo)+')':'')+'　第'+p.sessions.length+'回</div>'+
         '</div>'+
         '<button class="btn btn-white" style="font-size:11px;padding:4px 10px;margin-right:4px" onclick="openReport(\''+p.name+'\')">' +'📄 分析</button>'+
         '<button class="btn btn-white" style="font-size:11px;padding:4px 10px;margin-right:4px;background:#2c7a50;color:#fff" onclick="openChangeReport(\''+p.name+'\')">' +'📈 変化</button>'+
@@ -826,7 +843,7 @@ function renderDistribution(){
   persons.forEach(function(p){
     var k = getTypeKey(p.sessions[p.sessions.length-1].scores);
     var tmE = TYPE_MASTER[k];
-    var t = (tmE ? (typeof tmE==='object' ? tmE.name : tmE) : k)+'タイプ';
+    var t = (tmE ? (typeof tmE==='object' ? tmE.name : tmE) : k);
     typeCounts[t]=(typeCounts[t]||0)+1;
     if(!typePersons[t]) typePersons[t]=[];
     typePersons[t].push(p.name);
@@ -1236,7 +1253,7 @@ function showDetail(name){
     var prev = i>0?person.sessions[i-1]:null;
     var prevT = prev?(prev.scores.cp+prev.scores.np+prev.scores.a+prev.scores.fc+prev.scores.ac):null;
     var dStr = prevT!==null?(t>prevT?'<span style="color:var(--up)">▲+'+(t-prevT)+'</span>':t<prevT?'<span style="color:var(--dn)">▼'+(t-prevT)+'</span>':'—'):'初回';
-    body+='<tr><td style="padding:6px">第'+(i+1)+'回</td><td style="padding:6px">'+ss.date+(ss.memo?'<br><small>'+ss.memo+'</small>':'')+'</td>';
+    body+='<tr><td style="padding:6px">第'+(i+1)+'回</td><td style="padding:6px">'+ss.date+((ss.dept||ss.memo)?'<br><small>'+(ss.dept||ss.memo)+'</small>':'')+'</td>';
     ['cp','np','a','fc','ac'].forEach(function(k){
       body+='<td style="padding:6px;text-align:center">'+ss.scores[k]+'</td>';
     });
@@ -1260,7 +1277,7 @@ document.getElementById('detail-modal').addEventListener('click',function(e){if(
 // ===== CSV エクスポート =====
 function exportCSV(){
   var persons = allPersons;
-  var rows = [['氏名','回数','日付','メモ','CP','NP','A','FC','AC','合計','タイプ','懸念']];
+  var rows = [['氏名','回数','日付','所属・部署','CP','NP','A','FC','AC','合計','タイプ','懸念']];
   persons.forEach(function(p){
     p.sessions.forEach(function(s,i){
       var t=s.scores.cp+s.scores.np+s.scores.a+s.scores.fc+s.scores.ac;
@@ -1268,7 +1285,7 @@ function exportCSV(){
       var tmEntry2=TYPE_MASTER[tk];
       var tn=tmEntry2?(typeof tmEntry2==='object'?tmEntry2.name:tmEntry2):tk;
       var cs=i===p.sessions.length-1?calcConcerns(p).map(function(c){return c.text;}).join('|'):'';
-      rows.push([p.name,i+1,s.date,s.memo||'',s.scores.cp,s.scores.np,s.scores.a,s.scores.fc,s.scores.ac,t,tn+'タイプ',cs]);
+      rows.push([p.name,i+1,s.date,s.dept||s.memo||'',s.scores.cp,s.scores.np,s.scores.a,s.scores.fc,s.scores.ac,t,tn,cs]);
     });
   });
   var csv='\uFEFF'+rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
@@ -1318,7 +1335,7 @@ function importFiles(files){
               var groups = loadGroups();
               if(groups.indexOf(targetGroup) < 0){
                 groups.push(targetGroup);
-                saveGroups(groups);
+                localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(groups));
               }
             }
 
@@ -1326,7 +1343,7 @@ function importFiles(files){
             var dup = h.find(function(x){ return x.name===s.name && x.date===s.date; });
             if(!dup){
               // groupフィールドは保存データには不要なので除去
-              var entry = {name:s.name, date:s.date, memo:s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
+              var entry = {name:s.name, date:s.date, dept:s.dept||s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
               h.push(entry);
               localStorage.setItem(targetKey, JSON.stringify(h));
               totalImported++;
@@ -1362,11 +1379,11 @@ function handleFileImport(event){
           var targetKey = targetGroup ? getGroupKey(targetGroup) : 'egogram_role_history_v1';
           if(targetGroup){
             var groups = loadGroups();
-            if(groups.indexOf(targetGroup) < 0){ groups.push(targetGroup); saveGroups(groups); }
+            if(groups.indexOf(targetGroup) < 0){ groups.push(targetGroup); localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(groups)); }
           }
           var h = loadHistory(targetKey);
           var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
-          var entry = {name:s.name, date:s.date, memo:s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
+          var entry = {name:s.name, date:s.date, dept:s.dept||s.memo||'', role:s.role||'', scores:s.scores, savedAt:s.savedAt||new Date().toISOString()};
           if(!dup){ h.push(entry); imported++; }
           else if(confirm(s.name+'（'+s.date+'）は既に存在します。上書きしますか？')){
             var idx = h.findIndex(function(x){return x.name===s.name&&x.date===s.date;});
@@ -1386,7 +1403,7 @@ function handleFileImport(event){
           if(!line.trim()) return;
           var cols = line.split(',').map(function(c){return c.replace(/^"|"$/g,'').replace(/""/g,'"');});
           if(cols.length<9) return;
-          var s = {name:cols[0], date:cols[2], memo:cols[3]||'',
+          var s = {name:cols[0], date:cols[2], dept:cols[3]||'',
             scores:{cp:parseInt(cols[4])||0,np:parseInt(cols[5])||0,a:parseInt(cols[6])||0,fc:parseInt(cols[7])||0,ac:parseInt(cols[8])||0}};
           var dup = h.find(function(x){return x.name===s.name&&x.date===s.date;});
           if(!dup){ h.push(s); imported++; }
@@ -1829,9 +1846,53 @@ function openReport(name, date){
     ? (sessions.find(function(s){ return s.date===date; }) || sessions[sessions.length-1])
     : sessions[sessions.length-1];
   localStorage.setItem('egogram_role_temp_report', JSON.stringify({
-    name: name, date: target.date, dept: target.memo||'', role: target.role||'', scores: target.scores, ts: Date.now()
+    name: name, date: target.date, dept: target.dept||target.memo||'', role: target.role||'', scores: target.scores, ts: Date.now()
   }));
   window.open('egogram_role_report.html');
+}
+
+// ===== 一括PDF保存 =====
+function toggleBatchSelect(name, checked){
+  if(checked) batchSelected[name] = true;
+  else delete batchSelected[name];
+  updateBatchButton();
+}
+
+function toggleBatchSelectAll(checked){
+  document.querySelectorAll('#table-body .batch-chk').forEach(function(cb){
+    cb.checked = checked;
+    var name = cb.getAttribute('data-name');
+    if(checked) batchSelected[name] = true;
+    else delete batchSelected[name];
+  });
+  updateBatchButton();
+}
+
+function updateBatchButton(){
+  var btn = document.getElementById('batch-print-btn');
+  if(!btn) return;
+  var n = Object.keys(batchSelected).length;
+  btn.textContent = '選択した人を一括PDF保存 ('+n+')';
+  btn.disabled = n===0;
+}
+
+function startBatchPrint(){
+  var names = Object.keys(batchSelected);
+  if(names.length===0) return;
+  var queue = [];
+  names.forEach(function(name){
+    var person = allPersons.find(function(p){ return p.name===name; });
+    if(!person) return;
+    var latest = person.sessions[person.sessions.length-1];
+    queue.push({name:name, date:latest.date, dept:latest.dept||latest.memo||'', role:latest.role||'', scores:latest.scores});
+  });
+  if(queue.length===0){ alert('選択されたデータが見つかりません。'); return; }
+  if(!confirm(queue.length+'名分のレポートを1人ずつ順番にPDF保存します。\n人ごとに保存ダイアログが表示されるので、保存（またはキャンセル）してから表示される「次へ」を押してください。\n開始しますか？')) return;
+  localStorage.setItem('egogram_role_batch_queue', JSON.stringify(queue));
+  localStorage.setItem('egogram_role_batch_index', '0');
+  batchSelected = {};
+  updateBatchButton();
+  window.open('egogram_role_report.html?batch=1');
 }
 
 // ======================================================
@@ -1902,8 +1963,8 @@ function buildChangeHtml(person){
   h+='<div style="font-family:serif;font-size:20px;font-weight:700">エゴグラム 変化分析レポート（役職別）</div></div>';
   h+='<div style="text-align:right;font-size:12px;color:rgba(255,255,255,0.55);line-height:2">';
   h+='<strong style="color:#fff;font-size:14px">'+person.name+'</strong><br>';
-  h+='前回：<span style="color:rgba(255,255,255,.8);font-weight:600">'+fmtDate(prev.date)+'</span>'+(prev.memo?' <span style="opacity:.5;font-size:10px">('+prev.memo+')</span>':'')+'<br>';
-  h+='直近：<span style="color:#7dd9a8;font-weight:700">'+fmtDate(curr.date)+'</span>'+(curr.memo?' <span style="opacity:.5;font-size:10px">('+curr.memo+')</span>':'')+'<br>';
+  h+='前回：<span style="color:rgba(255,255,255,.8);font-weight:600">'+fmtDate(prev.date)+'</span>'+((prev.dept||prev.memo)?' <span style="opacity:.5;font-size:10px">('+(prev.dept||prev.memo)+')</span>':'')+'<br>';
+  h+='直近：<span style="color:#7dd9a8;font-weight:700">'+fmtDate(curr.date)+'</span>'+((curr.dept||curr.memo)?' <span style="opacity:.5;font-size:10px">('+(curr.dept||curr.memo)+')</span>':'')+'<br>';
   h+='<span style="font-size:10px;opacity:.45">第'+(sessions.length-1)+'回 → 第'+sessions.length+'回　間隔 '+daysDiff+'日</span>';
   h+='</div></div>';
 
@@ -1912,13 +1973,13 @@ function buildChangeHtml(person){
   h+='<div style="display:flex;align-items:center;gap:8px">';
   h+='<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8888aa;background:#e8e6e0;padding:2px 8px;border-radius:8px">前回</span>';
   h+='<span style="font-size:13px;font-weight:700;color:#1a1a2e">'+fmtDate(prev.date)+'</span>';
-  if(prev.memo) h+='<span style="font-size:11px;color:#8888aa">('+prev.memo+')</span>';
+  if((prev.dept||prev.memo)) h+='<span style="font-size:11px;color:#8888aa">('+(prev.dept||prev.memo)+')</span>';
   h+='<span style="font-size:11px;color:#8888aa">第'+(sessions.length-1)+'回</span></div>';
   h+='<span style="color:#d4d0c8;font-size:18px">→</span>';
   h+='<div style="display:flex;align-items:center;gap:8px">';
   h+='<span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#1a7a4a;background:#d4f4e2;padding:2px 8px;border-radius:8px">直近</span>';
   h+='<span style="font-size:13px;font-weight:700;color:#1a1a2e">'+fmtDate(curr.date)+'</span>';
-  if(curr.memo) h+='<span style="font-size:11px;color:#8888aa">('+curr.memo+')</span>';
+  if((curr.dept||curr.memo)) h+='<span style="font-size:11px;color:#8888aa">('+(curr.dept||curr.memo)+')</span>';
   h+='<span style="font-size:11px;color:#8888aa">第'+sessions.length+'回</span></div>';
   h+='<div style="margin-left:auto;font-size:12px;color:#8888aa">実施間隔：<strong style="color:#1a1a2e">'+daysDiff+'日</strong></div>';
   h+='</div>';
@@ -2025,7 +2086,7 @@ function openEditModal(name, date){
   var h = loadHistory();
   var rec = h.find(function(s){ return s.name===name && s.date===date; });
   if(!rec){ alert('データが見つかりません。'); return; }
-  _editTarget = {name: name, date: date};
+  _editTarget = {name: name, date: date, group: currentGroup};
 
   var s = rec.scores;
   var v = s.values || {a:3, b:3, c:3, d:3, e:3};
@@ -2047,9 +2108,9 @@ function openEditModal(name, date){
   html += '<div><div style="'+labelStyle+'">実施日</div>' +
     '<input id="edit-date" type="date" value="'+escHtml(rec.date)+'" style="'+fieldStyle+'"></div>';
 
-  // メモ
-  html += '<div><div style="'+labelStyle+'">メモ（任意）</div>' +
-    '<input id="edit-memo" type="text" value="'+escHtml(rec.memo||'')+'" placeholder="例：研修後 / 異動後" style="'+fieldStyle+'"></div>';
+  // 所属・部署
+  html += '<div><div style="'+labelStyle+'">所属・部署（任意）</div>' +
+    '<input id="edit-dept" type="text" value="'+escHtml(rec.dept||rec.memo||'')+'" placeholder="例：営業部 / 第1課" style="'+fieldStyle+'"></div>';
 
   // 役職
   html += '<div><div style="'+labelStyle+'">役職区分</div>' +
@@ -2057,6 +2118,16 @@ function openEditModal(name, date){
     '<option value="">— 未選択 —</option>' +
     ['管理職','一般','若手'].map(function(r){
       return '<option value="'+r+'"'+(rec.role===r?' selected':'')+'>'+r+'</option>';
+    }).join('') +
+    '</select></div>';
+
+  // グループ
+  var allGroups = loadGroups();
+  html += '<div><div style="'+labelStyle+'">グループ</div>' +
+    '<select id="edit-group" style="'+fieldStyle+'">' +
+    '<option value="">（グループなし）</option>' +
+    allGroups.map(function(g){
+      return '<option value="'+escHtml(g)+'"'+(currentGroup===g?' selected':'')+'>'+escHtml(g)+'</option>';
     }).join('') +
     '</select></div>';
 
@@ -2088,9 +2159,12 @@ function openEditModal(name, date){
   html += '</div></div>';
 
   // ボタン
-  html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">' +
+  html += '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:4px">' +
+    '<button onclick="deleteEditModalRecord()" style="border:1px solid #e05a5a;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:700;font-family:\'Noto Sans JP\',sans-serif;cursor:pointer;background:#fff;color:#e05a5a">🗑 このデータを削除</button>' +
+    '<div style="display:flex;gap:8px">' +
     '<button onclick="closeEditModal()" style="border:1px solid var(--border);border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;font-family:\'Noto Sans JP\',sans-serif;cursor:pointer;background:#fff;color:var(--mid)">キャンセル</button>' +
     '<button onclick="saveEditModal()" style="border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;font-family:\'Noto Sans JP\',sans-serif;cursor:pointer;background:#1a1a2e;color:#fff">保存する</button>' +
+    '</div>' +
     '</div>';
 
   html += '</div>';
@@ -2108,13 +2182,27 @@ function closeEditModal(){
   _editTarget = null;
 }
 
+function deleteEditModalRecord(){
+  if(!_editTarget) return;
+  if(!confirm(_editTarget.name+'（'+_editTarget.date+'）のデータを削除しますか？\nこの操作は取り消せません。')) return;
+  var key = getGroupKey(_editTarget.group);
+  var h = loadHistory(key);
+  var idx = h.findIndex(function(s){ return s.name===_editTarget.name && s.date===_editTarget.date; });
+  if(idx<0){ alert('データが見つかりません。'); closeEditModal(); return; }
+  h.splice(idx,1);
+  localStorage.setItem(key, JSON.stringify(h));
+  closeEditModal();
+  refreshData();
+}
+
 function saveEditModal(){
   if(!_editTarget) return;
 
   var newName = document.getElementById('edit-name').value.trim();
   var newDate = document.getElementById('edit-date').value;
-  var newMemo = document.getElementById('edit-memo').value.trim();
+  var newMemo = document.getElementById('edit-dept').value.trim();
   var newRole = document.getElementById('edit-role').value;
+  var newGroup = document.getElementById('edit-group').value;
 
   if(!newName){ alert('氏名を入力してください。'); return; }
   if(!newDate){ alert('実施日を入力してください。'); return; }
@@ -2142,19 +2230,245 @@ function saveEditModal(){
   var idx = h.findIndex(function(s){ return s.name===_editTarget.name && s.date===_editTarget.date; });
   if(idx<0){ alert('データが見つかりません。'); closeEditModal(); return; }
 
-  // 氏名または日付が変わった場合の重複チェック
-  if(newName !== _editTarget.name || newDate !== _editTarget.date){
-    var conflict = h.findIndex(function(s,i){ return i!==idx && s.name===newName && s.date===newDate; });
-    if(conflict>=0){ alert('同じ氏名・日付のデータが既に存在します。'); return; }
+  var savedAt = h[idx].savedAt || new Date().toISOString();
+  var entry = {name: newName, date: newDate, dept: newMemo, role: newRole, scores: newScores, savedAt: savedAt};
+
+  if(newGroup !== _editTarget.group){
+    // グループ変更：移動先の重複チェック
+    var newKey = getGroupKey(newGroup);
+    var newH = JSON.parse(localStorage.getItem(newKey) || '[]');
+    if(newH.find(function(x){ return x.name===newName && x.date===newDate; })){
+      alert('移動先グループに同じ氏名・日付のデータが既に存在します。'); return;
+    }
+    // 旧グループから削除
+    h.splice(idx, 1);
+    saveHistory(h);
+    // 新グループに追加
+    newH.push(entry);
+    localStorage.setItem(newKey, JSON.stringify(newH));
+    // 新グループをリストに登録（未登録の場合）
+    if(newGroup){
+      var groups = loadGroups();
+      if(groups.indexOf(newGroup) < 0){ groups.push(newGroup); localStorage.setItem(GROUP_LIST_KEY, JSON.stringify(groups)); }
+    }
+  } else {
+    // 同一グループ内での氏名/日付重複チェック
+    if(newName !== _editTarget.name || newDate !== _editTarget.date){
+      var conflict = h.findIndex(function(s,i){ return i!==idx && s.name===newName && s.date===newDate; });
+      if(conflict>=0){ alert('同じ氏名・日付のデータが既に存在します。'); return; }
+    }
+    h[idx] = entry;
+    saveHistory(h);
   }
 
-  h[idx] = {
-    name: newName, date: newDate, memo: newMemo, role: newRole,
-    scores: newScores, savedAt: h[idx].savedAt || new Date().toISOString()
-  };
-  saveHistory(h);
   closeEditModal();
   refreshData();
+}
+
+function printSummaryReport() {
+  var overviewEl = document.getElementById('tab-overview');
+  var distEl     = document.getElementById('tab-distribution');
+  var renderW    = (document.querySelector('.content') || document.body).offsetWidth || 800;
+
+  // display:none のタブは canvas サイズが 0 になるため、描画前に一時表示する
+  function tempShow(el) {
+    el.style.cssText = 'display:flex!important;flex-direction:column;gap:24px;' +
+      'position:fixed;top:-9999px;left:0;width:' + renderW + 'px;visibility:hidden;pointer-events:none';
+  }
+  function tempHide(el) {
+    el.style.cssText = '';
+  }
+
+  // 概要・分布タブを一時表示してチャートを描画（display:none だと canvas サイズが 0 になる）
+  // 印刷用にChartフォントを拡大（canvas に焼き込まれるため描画前に設定）
+  var origFontSize = Chart.defaults.font.size;
+  Chart.defaults.font.size = 16;
+
+  var overviewHidden = !overviewEl.classList.contains('active');
+  if (overviewHidden) tempShow(overviewEl);
+  renderOverview();
+  renderConcernList();
+
+  // 各チャートのラベル・フォントを印刷用に更新
+  var axisLabels = [['CP','価値観・厳しさ'],['NP','優しさ・共感'],['A','冷静さ・理性'],['FC','遊び・自由'],['AC','我慢強さ・順応']];
+  if (window._typeChart && window._typeChart.options.plugins && window._typeChart.options.plugins.legend) {
+    window._typeChart.options.plugins.legend.labels.font = {size: 14};
+    window._typeChart.update('none');
+  }
+  if (window._avgChart) {
+    window._avgChart.data.labels = axisLabels;
+    window._avgChart.update('none');
+  }
+  if (window._roleCompareChart) {
+    window._roleCompareChart.data.labels = axisLabels;
+    window._roleCompareChart.update('none');
+  }
+
+  tempShow(distEl);
+  renderDistribution();
+
+  // typeBarChart・matrixChart のフォントも拡大（明示的に10pxが指定されているため個別に更新）
+  if (window._typeBarChart && window._typeBarChart.options.scales) {
+    window._typeBarChart.options.scales.y.ticks.font = {size: 14};
+    window._typeBarChart.options.scales.x.ticks.font = {size: 13};
+    window._typeBarChart.update('none');
+  }
+  if (window._matrixChart && window._matrixChart.options.plugins && window._matrixChart.options.plugins.legend) {
+    window._matrixChart.data.labels = ['私OK・あなたOK','私OK・あなたNG','私NG・あなたOK','私NG・あなたNG'];
+    window._matrixChart.options.plugins.legend.position = 'right';
+    window._matrixChart.options.plugins.legend.labels.font = {size: 13};
+    window._matrixChart.options.plugins.legend.labels.boxWidth = 12;
+    window._matrixChart.options.plugins.legend.labels.padding = 10;
+    window._matrixChart.update('none');
+  }
+
+  // Chart.js アニメーション完了を待ってから canvas データを一括取得
+  setTimeout(function() {
+    var canvasMap = {};
+    [overviewEl, distEl].forEach(function(el) {
+      el.querySelectorAll('canvas').forEach(function(c) {
+        if (c.id) { try { canvasMap[c.id] = c.toDataURL('image/png'); } catch(e) {} }
+      });
+    });
+    // フォントサイズを元に戻す
+    Chart.defaults.font.size = origFontSize;
+    if (overviewHidden) tempHide(overviewEl);
+    tempHide(distEl);
+
+    var groupName = currentGroup || 'グループなし';
+    var today = new Date().toLocaleDateString('ja-JP', {year:'numeric', month:'long', day:'numeric'});
+
+    var concernEl = document.getElementById('tab-concern');
+
+    function replaceCanvases(cloneEl) {
+      cloneEl.querySelectorAll('canvas').forEach(function(c) {
+        var dataUrl = canvasMap[c.id] || '';
+        if (!dataUrl) return;
+        var img = document.createElement('img');
+        img.src = dataUrl;
+        img.id = c.id;
+        img.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain';
+        c.parentNode.replaceChild(img, c);
+      });
+    }
+
+    var overviewClone = overviewEl.cloneNode(true);
+    var concernClone  = concernEl.cloneNode(true);
+    var distClone     = distEl.cloneNode(true);
+
+    replaceCanvases(overviewClone);
+    replaceCanvases(distClone);
+    concernClone.querySelectorAll('button').forEach(function(b){ b.style.display='none'; });
+
+    // 要注意リストのtable-wrap余白を削減（ページ溢れ防止）
+    concernClone.querySelectorAll('.table-wrap').forEach(function(el) {
+      el.style.padding = '4px 10px';
+      el.style.overflow = 'visible';
+    });
+    // テーブルヘッダー行の下余白も詰める
+    concernClone.querySelectorAll('.chart-title').forEach(function(el) {
+      el.style.marginBottom = '4px';
+    });
+
+    // チャート高さをコンパクト化（inline styleを直接書き換え）
+    overviewClone.querySelectorAll('div').forEach(function(el) {
+      if (el.style.height === '220px' || el.style.height === '200px') el.style.height = '150px';
+    });
+    distClone.querySelectorAll('div').forEach(function(el) {
+      if (el.style.height === '280px') el.style.height = '160px';
+    });
+    // 役職別平均スコア比較チャートは棒の差が見えやすいよう高めに設定
+    var rcEl = overviewClone.querySelector('#roleCompareChart');
+    if (rcEl && rcEl.parentNode) rcEl.parentNode.style.height = '320px';
+
+    // page-break-after をクローン自体に付ける（page-break-before だと空白ページが発生するため）
+    // 要注意リストは最後のセクション（人数可変のため末尾に配置）
+    overviewClone.style.pageBreakAfter = 'always';
+    distClone.style.pageBreakAfter = 'always';
+
+    var styles = '';
+    document.querySelectorAll('style').forEach(function(s){ styles += s.textContent + '\n'; });
+    var links = '';
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l){ links += l.outerHTML; });
+
+    var docTitle = groupName + '_総合レポート';
+    var origTitle = document.title;
+    document.title = docTitle;
+
+    var headerHtml =
+      '<div style="background:#1a1a2e;color:#fff;padding:16px 24px">' +
+        '<div style="font-size:10px;letter-spacing:.12em;opacity:.45;margin-bottom:4px">EGOGRAM ANALYSIS SUMMARY REPORT</div>' +
+        '<div style="font-size:18px;font-weight:700">エゴグラム 総合分析レポート</div>' +
+        '<div style="margin-top:4px;font-size:12px;opacity:.7">グループ：<strong style="opacity:1">'+groupName+'</strong>　出力日：'+today+'</div>' +
+      '</div>' +
+      '<div style="border-bottom:1px solid #ddd"></div>';
+
+    var sectionLabel = 'padding:5px 24px;font-size:11px;font-weight:700;background:#f8f7f3;margin:0';
+
+    var old = document.getElementById('_sr');
+    if (old) old.parentNode.removeChild(old);
+    var frame = document.createElement('iframe');
+    frame.id = '_sr';
+    frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;pointer-events:none';
+    document.body.appendChild(frame);
+
+    var iWin = frame.contentWindow;
+    var iDoc = iWin.document;
+    iDoc.open();
+    iDoc.write(
+      '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>'+docTitle+'</title>'+links+
+      '<style>'+styles+
+      'body{background:#fff;margin:0;padding:0}' +
+      '.top-bar,.tabs,.drop-zone,.modal-overlay{display:none!important}' +
+      '.tab-content{display:block!important;padding:10px 24px}' +
+      '.summary-grid{gap:8px!important;margin-bottom:8px!important}' +
+      '.summary-card{padding:10px 14px!important}' +
+      '.summary-value{font-size:22px!important}' +
+      '.chart-grid{gap:10px!important;margin-bottom:0!important}' +
+      '.chart-card,.chart-card-full{min-width:0;overflow:hidden;padding:10px 14px!important;margin-bottom:10px!important}' +
+      '.chart-title{font-size:11px!important;margin-bottom:4px!important;padding-bottom:6px!important}' +
+      '.concern-list{display:block!important}' +
+      '.concern-item{padding:5px 10px!important;border-radius:4px!important;margin-bottom:4px!important}' +
+      '.concern-item-header{margin-bottom:2px!important}' +
+      '.concern-name{font-size:11px!important}' +
+      '.concern-date{font-size:10px!important}' +
+      '.concern-tags{margin-bottom:2px!important;gap:3px!important}' +
+      '.concern-tag{font-size:9px!important;padding:1px 5px!important}' +
+      '.concern-text{font-size:10px!important;line-height:1.4!important}' +
+      'table{font-size:11px!important}' +
+      'th,td{padding:4px 8px!important}' +
+      '.table-header{padding:8px 14px!important}' +
+      '.table-title{font-size:12px!important}' +
+      '.table-wrap{margin-bottom:0!important}' +
+      '.tab-content .table-wrap[style*="padding:20px"]{padding:10px!important}' +
+      'button{display:none!important}' +
+      '@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+      '</style></head><body>' +
+      headerHtml +
+      '<div style="'+sectionLabel+';color:#2c7a50">■ 概要・スコア分析</div>' +
+      overviewClone.outerHTML +
+      '<div style="'+sectionLabel+';color:#1a1a2e">■ タイプ分布</div>' +
+      distClone.outerHTML +
+      '<div style="'+sectionLabel+';color:#c0392b">■ 要注意リスト</div>' +
+      concernClone.outerHTML +
+      '</body></html>'
+    );
+    iDoc.close();
+
+    var fired = false;
+    function go() {
+      if (fired) return; fired = true;
+      iWin.focus();
+      iWin.print();
+      setTimeout(function(){
+        document.title = origTitle;
+        var f = document.getElementById('_sr');
+        if (f) f.parentNode.removeChild(f);
+      }, 3000);
+    }
+    frame.onload = go;
+    setTimeout(go, 1500);
+  }, 800);
 }
 </script>
 </body>

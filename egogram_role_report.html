@@ -1119,6 +1119,8 @@ var ROLE_ANALYSIS = {
           if (s.cp >= 15) risk = '【要注意】CPが非常に高い状態です。「なぜできないんだ」「そんなこともわからないのか」という言い方が意図せずパワーハラスメントと受け取られるリスクがあります。指摘は「行動」に焦点を当て、人格を否定しない表現を心がけてください。';
           else if (s.cp >= 12) risk = 'CPがやや高めです。自分の「当たり前の基準」が部下には高いハードルに感じられている可能性があります。期待を言葉にして伝え、達成可能なステップを一緒に設計する姿勢が重要です。';
           else risk = 'CPは適切な範囲です。ただし管理職という立場の「権力差」は常に意識しておく必要があります。';
+          var fc_risk = s.fc >= 14 ? '【注意】FCが高く、感情がそのまま言動に表れやすいタイプです。豊かな感情表現はチームの活力になる一方、管理職という立場では感情的な言葉や反応が部下へのプレッシャーになりやすいです。「感情で動く」ではなく「事実と期待を伝える」意識を持つことが大切です。' : '';
+          var np_risk = s.np >= 15 ? '【注意】NPが高く、メンバーへの配慮やサポート意欲が非常に強い状態です。善意からの関わりでも「助けすぎ」「世話を焼きすぎ」が相手の自律性を奪い、意図せず過干渉・パターナリスティックな関わりになるリスクがあります。' : '';
           var ac_risk = s.ac >= 14 ? 'ACが高いため、部下がNOを言えない環境になっていないか確認が必要です。「断っていい」「相談していい」という心理的安全を言葉にして伝えてください。' : '';
 
           var tips = [];
@@ -1133,6 +1135,18 @@ var ROLE_ANALYSIS = {
               '「こうすべき」という基準を部下に伝えるとき「なぜそれが重要か」の背景を必ず添える。背景があると指示が指導に変わる',
               '期待を言葉にして伝え「達成可能なステップ」を一緒に設計する。高い基準を押しつけるより、到達の道筋を一緒に作る姿勢が重要',
               '定期的な1on1で「最近しんどいことはないか」を確認する場を作る。ハラスメント予防の最も効果的な手段の一つ'
+            ];
+          } else if (s.fc >= 14) {
+            tips = [
+              '感情が高ぶったとき（特に怒りや焦り）は、その場で言葉にする前に「3秒待つ」習慣を持つ。感情ではなく「事実と期待」を伝えることがパワハラ予防の鍵',
+              '焦り・失望・苛立ちを伝えるときは「あなたが〜」ではなく「私は〜と感じた」という私メッセージを使う。主語を変えるだけで受け取り側のプレッシャーが大きく変わる',
+              '月に一度「あのときの自分の言い方はどうだったか」を振り返る機会を持つ。自己認識が高まるほどリスクは下がる'
+            ];
+          } else if (s.np >= 15) {
+            tips = [
+              '関わる前に「手伝いましょうか？」と一言確認する。相手が「自分でやりたい」というサインを出しているときは一歩引いて見守る姿勢を意識する',
+              '心配から声をかけるとき「あなたが心配だから」より「何かあれば声をかけてください」と相手の意思を尊重する表現に変える',
+              'プライベートへの関心・配慮は相手が望む範囲に留める。善意の関わりでも頻度や踏み込みが過剰になると圧力になることがある'
             ];
           } else if (s.ac >= 14) {
             tips = [
@@ -1149,7 +1163,7 @@ var ROLE_ANALYSIS = {
           }
           var tipsHtml = '<div class="action-list">' +
             tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
-          return risk + (ac_risk ? ' ' + ac_risk : '') + tipsHtml;
+          return risk + (fc_risk ? ' ' + fc_risk : '') + (np_risk ? ' ' + np_risk : '') + (ac_risk ? ' ' + ac_risk : '') + tipsHtml;
         }
       },
       motivation: {
@@ -1226,7 +1240,7 @@ var ROLE_ANALYSIS = {
         }
       },
       retention: {
-        title: '離職防止・定着のために',
+        title: 'チームメンバーの離職防止・定着のために',
         fn: function(L, T, s) {
           var pat;
           if (s.cp >= 15) {
@@ -1281,6 +1295,52 @@ var ROLE_ANALYSIS = {
                 '四半期ごとに「今の仕事で達成感はあるか」「3年後のキャリアをどう考えているか」を1on1で確認する。成長感のなさはじわじわと離職意向につながる。',
                 '「失敗してもいいから相談してほしい」というメッセージを繰り返し伝える。心理的安全性は一度作れば終わりではなく、発信し続けることで維持される。',
                 '部下ごとに「何に達成感を感じるか」を把握し、その人に合った承認の言葉を意識して使い分ける。画一的な評価より、個別に届く言葉が定着を高める。'
+              ]
+            };
+          }
+          var tipsHtml = '<div class="action-list">' +
+            pat.tips.map(function(t, i){ return '<div class="action-item"><div class="action-num">'+(i+1)+'</div><div class="action-text">'+t+'</div></div>'; }).join('') + '</div>';
+          return pat.text + tipsHtml;
+        }
+      },
+      burnout: {
+        title: '自身の燃え尽き・消耗防止',
+        fn: function(L, T, s) {
+          var pat;
+          if (s.cp >= 12 && s.ac >= 12) {
+            pat = {
+              text: '「こうあるべき」という基準の高さと、周囲への気配りが重なっているため、自分のキャパシティを超えても動き続けやすいタイプです。疲弊のサインに自分では気づきにくく、限界に達してから初めて気づくことが多いです。「頑張る」ことが自然にできてしまうぶん、立ち止まる意識が必要です。',
+              tips: [
+                '週に一度「今週の自分のコンディション」を10段階で確認する。7以下なら何かを削るか誰かに任せる判断をする',
+                '依頼を受けたとき「少し考えさせてください」と一呼吸置く習慣を持つ。その場で引き受けるパターンを崩すだけで無理な積み上げを防げる',
+                '信頼できる同僚や家族に「最近どう見えているか」を月に一度聞く。自分では気づきにくい疲弊のサインを外から教えてもらう'
+              ]
+            };
+          } else if (s.np >= 14) {
+            pat = {
+              text: '人の役に立つことへの喜びが強く、「助けること」自体がエネルギー源になっています。しかしその分、他者のために動き続けることで、自分自身へのケアが後回しになりやすいです。「ケアする人がケアされていない」状態が続くと、じわじわと消耗します。',
+              tips: [
+                '月に一度「今、手放せることはないか」を書き出す。全部引き受けることが誠実さではないことを意識的に確認する',
+                '「誰かに頼ること・任せること」も管理職の仕事と認識する。一人で抱えることは美徳でなく、チームのリスクになる',
+                '自分が充電できること（好きなこと・休息・人との時間）を週1回以上、意識的にスケジュールに入れる'
+              ]
+            };
+          } else if (s.fc <= 8) {
+            pat = {
+              text: '感情を表に出しにくいタイプのため、ストレスや疲れが内側に蓄積しやすい状態です。「しんどい」と感じる前に論理や役割意識が先行し、燃え尽きのサインに気づくのが遅れやすいです。気づいたときにはかなり消耗していた、というパターンに注意が必要です。',
+              tips: [
+                '週に一度「今週しんどかった瞬間」を一つだけ書き出す習慣を持つ。感情に言葉を与えることで内側の蓄積を防ぐ',
+                '「疲れた」という感覚を「弱さ」ではなく「コンディションの情報」として扱う。感じることはマネジメントに必要な能力の一つ',
+                '信頼できる人との雑談の時間を意図的に作る。感情を共有できる場が、思った以上に回復の鍵になる'
+              ]
+            };
+          } else {
+            pat = {
+              text: '特定の高リスクパターンは見られません。ただし管理職という立場は「消耗する前に気づく」仕組みを意識的に作ることが重要です。予防としての自己観察を習慣にしておくことが、長く良い状態で関わり続けるための土台になります。',
+              tips: [
+                '週に一度「今週の自分のコンディション」を10段階で確認する習慣を持つ。継続的な観察が燃え尽きの早期予防につながる',
+                '「断る・任せる・頼る」を定期的に実践する。管理職は引き受けすぎやすい立場にあり、意識しないと積み上がる',
+                '自分が充電できること（趣味・休息・人との時間）を意識的にスケジュールに確保する。後回しにするほど回復に時間がかかる'
               ]
             };
           }
@@ -2160,6 +2220,10 @@ function buildRoleSection(role, L, T, s) {
 function doPrint() {
   var reportEl = document.getElementById('report-doc');
   if (!reportEl) { window.print(); return; }
+  var personName = (document.getElementById('name').value || '').trim();
+  var docTitle = personName ? personName + '_分析レポート' : '分析レポート';
+  var origTitle = document.title;
+  document.title = docTitle;
 
   // canvasをPNG画像に差し替えたクローンを作成
   var clone = reportEl.cloneNode(true);
@@ -2197,7 +2261,7 @@ function doPrint() {
   var iDoc = iWin.document;
   iDoc.open();
   iDoc.write(
-    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' + links +
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>' + docTitle + '</title>' + links +
     '<style>' + styles +
     'body{background:#f5f4f0}.app-wrapper{display:block!important}' +
     '.input-panel,.action-bar{display:none!important}' +
@@ -2214,7 +2278,10 @@ function doPrint() {
     if (fired) return; fired = true;
     iWin.focus();
     iWin.print();
-    setTimeout(function(){ var f=document.getElementById('_pf'); if(f) f.parentNode.removeChild(f); }, 3000);
+    setTimeout(function(){
+      document.title = origTitle;
+      var f=document.getElementById('_pf'); if(f) f.parentNode.removeChild(f);
+    }, 3000);
   }
   frame.onload = go;
   setTimeout(go, 800);
@@ -2350,7 +2417,7 @@ function generateReport(){
   htmlOutBC+=sec('7','今のあなたへのメッセージ',
     '<div class="message-box"><div class="msg-title">Message for You</div><div class="msg-body">'+sec7+'</div></div>',
     true,'sec-message');
-  htmlOutBC+=sec('9','今週からの行動目標',actionHtml,true,'sec-actions');
+  htmlOutBC+=sec('9','今週からの行動目標（提案）',actionHtml,true,'sec-actions');
   htmlOutBC+=sec('10','成長のための対話アドバイス（推奨ストローク）','<p>'+sec10+'</p>',false,'sec-stroke');
   htmlOutBC+='<div class="report-section print-hide"><div class="section-header"><div style="width:24px"></div><div class="section-title-text">交流分析について</div></div>'+
     '<div class="section-content"><div class="memo-box">このレポートは交流分析（エゴグラム）の考え方をもとに、コミュニケーション傾向や人間関係のクセに気づくための資料です。大切なのは「良い・悪い」で決めつけることではなく、今の傾向を知った上で、より良い関係づくりや幸せな人生のためにどう活かすかを考えることです。高い自我状態を下げるのではなく、低い自我状態を育てることが成長の本質です。</div></div></div>';
@@ -2641,8 +2708,17 @@ function makeCell(key, data, active) {
 
 function formatDate(s){var d=new Date(s);return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';}
 
+var BATCH_QUEUE_KEY = 'egogram_role_batch_queue';
+var BATCH_INDEX_KEY = 'egogram_role_batch_index';
+
 // ===== 入力フォームからの連携 =====
 (function(){
+  // ⓪ 一括PDF保存モード（管理画面から複数名をまとめて出力）
+  var bp = new URLSearchParams(window.location.search);
+  if(bp.get('batch')==='1'){
+    runBatchStep();
+    return;
+  }
   // ① URLパラメータ直接渡し方式（同タブ遷移時）
   var p = new URLSearchParams(window.location.search);
   var name = p.get('name');
@@ -2669,7 +2745,7 @@ function formatDate(s){var d=new Date(s);return d.getFullYear()+'年'+(d.getMont
     localStorage.removeItem('egogram_role_temp_report');
     document.getElementById('name').value = d.name;
     document.getElementById('date').value = d.date;
-    document.getElementById('dept').value = d.dept || '';
+    document.getElementById('dept').value = d.dept || d.memo || '';
     document.getElementById('role').value = d.role || '';
     syncScore('cp', d.scores.cp);
     syncScore('np', d.scores.np);
@@ -2680,6 +2756,71 @@ function formatDate(s){var d=new Date(s);return d.getFullYear()+'年'+(d.getMont
     generateReport();
   }catch(e){}
 })();
+
+// ===== 一括PDF保存モード =====
+function runBatchStep(){
+  try{
+    var queue = JSON.parse(localStorage.getItem(BATCH_QUEUE_KEY) || '[]');
+    var idx = parseInt(localStorage.getItem(BATCH_INDEX_KEY) || '0');
+    if(!queue.length || idx >= queue.length){
+      showBatchBar(null, queue.length, true);
+      localStorage.removeItem(BATCH_QUEUE_KEY);
+      localStorage.removeItem(BATCH_INDEX_KEY);
+      return;
+    }
+    var d = queue[idx];
+    document.getElementById('name').value = d.name;
+    document.getElementById('date').value = d.date;
+    document.getElementById('dept').value = d.dept || '';
+    document.getElementById('role').value = d.role || '';
+    syncScore('cp', d.scores.cp);
+    syncScore('np', d.scores.np);
+    syncScore('a',  d.scores.a);
+    syncScore('fc', d.scores.fc);
+    syncScore('ac', d.scores.ac);
+    _valuesData = d.scores.values || null;
+    generateReport();
+    showBatchBar(d, queue.length, false, idx);
+    setTimeout(function(){ doPrint(); }, 600);
+  }catch(e){ console.error(e); }
+}
+
+function showBatchBar(d, total, done, idx){
+  var old = document.getElementById('batch-bar');
+  if(old) old.parentNode.removeChild(old);
+  var bar = document.createElement('div');
+  bar.id = 'batch-bar';
+  bar.className = 'print-hide';
+  bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#1a1a2e;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:16px;font-family:"Noto Sans JP",sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,0.2)';
+  if(done){
+    bar.innerHTML =
+      '<span style="font-size:13px;font-weight:700">全'+total+'件の一括PDF保存が完了しました。</span>' +
+      '<button onclick="window.close()" style="border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#1a1a2e">閉じる</button>';
+  } else {
+    bar.innerHTML =
+      '<span style="font-size:13px">一括PDF保存中　<strong>'+(idx+1)+' / '+total+'</strong>　（'+escBatchHtml(d.name)+'）</span>' +
+      '<span style="font-size:11px;color:#c8c8dc">保存ダイアログでPDF保存 or キャンセルしたら「次へ」を押してください</span>' +
+      '<button onclick="nextBatchStep()" style="border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#1a1a2e">次へ ▶</button>' +
+      '<button onclick="cancelBatch()" style="border:1px solid #666;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;background:transparent;color:#fff">中止</button>';
+  }
+  document.body.appendChild(bar);
+}
+
+function escBatchHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function nextBatchStep(){
+  var idx = parseInt(localStorage.getItem(BATCH_INDEX_KEY) || '0');
+  localStorage.setItem(BATCH_INDEX_KEY, String(idx+1));
+  location.reload();
+}
+
+function cancelBatch(){
+  localStorage.removeItem(BATCH_QUEUE_KEY);
+  localStorage.removeItem(BATCH_INDEX_KEY);
+  window.close();
+}
 
 async function downloadPDF(){
   var name=document.getElementById('name').value.trim()||'エゴグラムレポート';
