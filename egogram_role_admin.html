@@ -1887,7 +1887,7 @@ function startBatchPrint(){
     queue.push({name:name, date:latest.date, dept:latest.dept||latest.memo||'', role:latest.role||'', scores:latest.scores});
   });
   if(queue.length===0){ alert('選択されたデータが見つかりません。'); return; }
-  if(!confirm(queue.length+'名分のレポートを1人ずつ順番にPDF保存します。\n人ごとに保存ダイアログが表示されるので、保存（またはキャンセル）してから表示される「次へ」を押してください。\n開始しますか？')) return;
+  if(!confirm(queue.length+'名分のレポートを1人ずつ順番にPDF保存します。\n開いた画面の下のバーで「PDF保存」を押して保存し、終わったら「次へ」を押してください。\n開始しますか？')) return;
   localStorage.setItem('egogram_role_batch_queue', JSON.stringify(queue));
   localStorage.setItem('egogram_role_batch_index', '0');
   batchSelected = {};

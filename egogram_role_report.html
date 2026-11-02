@@ -2217,75 +2217,57 @@ function buildRoleSection(role, L, T, s) {
 }
 
 
-function doPrint() {
-  var reportEl = document.getElementById('report-doc');
-  if (!reportEl) { window.print(); return; }
-  var personName = (document.getElementById('name').value || '').trim();
-  var docTitle = personName ? personName + '_分析レポート' : '分析レポート';
-  var origTitle = document.title;
-  document.title = docTitle;
+// ===== 印刷／PDF保存 =====
+// Safariはボタン操作の外（setTimeout・iframeのonload）から呼んだ印刷を制限するため、
+// ボタンを押した処理の中で window.print() を直接呼ぶ。
+// 印刷時の幅変更でcanvasが描き直し途中のまま印刷されないよう、印刷の間だけcanvasを画像に差し替える。
+// タイトル（=PDFのファイル名）と差し替えは、時間ではなく afterprint で元に戻す。
+var _printState = null;
 
-  // canvasをPNG画像に差し替えたクローンを作成
-  var clone = reportEl.cloneNode(true);
-  var origCanvases = reportEl.querySelectorAll('canvas');
-  var cloneCanvases = clone.querySelectorAll('canvas');
-  origCanvases.forEach(function(orig, i) {
-    if (!cloneCanvases[i]) return;
+function preparePrint() {
+  if (_printState) return;
+  var reportEl = document.getElementById('report-doc');
+  if (!reportEl) return;
+  var personName = (document.getElementById('name').value || '').trim();
+  _printState = { title: document.title, swaps: [] };
+  document.title = personName ? personName + '_分析レポート' : '分析レポート';
+  reportEl.querySelectorAll('canvas').forEach(function(cv) {
     try {
       var img = document.createElement('img');
-      img.src = orig.toDataURL('image/png');
-      img.id = orig.id;
-      img.className = orig.className;
+      img.src = cv.toDataURL('image/png');
+      img.id = cv.id;               // 印刷CSSの #valuesRadarChart 指定を画像に効かせる
+      img.className = cv.className;
       img.style.display = 'block';
       img.style.maxWidth = '100%';
       img.style.maxHeight = '100%';
-      cloneCanvases[i].parentNode.replaceChild(img, cloneCanvases[i]);
+      cv.id = '';
+      cv.style.display = 'none';
+      cv.parentNode.insertBefore(img, cv);
+      _printState.swaps.push({ canvas: cv, img: img, id: img.id });
     } catch(e) {}
   });
-
-  // スタイルとフォントリンクを収集
-  var styles = '';
-  document.querySelectorAll('style').forEach(function(s){ styles += s.textContent + '\n'; });
-  var links = '';
-  document.querySelectorAll('link[rel="stylesheet"]').forEach(function(l){ links += l.outerHTML; });
-
-  // 毎回新しいiframeを生成（新documentなのでSafariが初回印刷として扱う）
-  var old = document.getElementById('_pf');
-  if (old) old.parentNode.removeChild(old);
-  var frame = document.createElement('iframe');
-  frame.id = '_pf';
-  frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;pointer-events:none';
-  document.body.appendChild(frame);
-
-  var iWin = frame.contentWindow;
-  var iDoc = iWin.document;
-  iDoc.open();
-  iDoc.write(
-    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>' + docTitle + '</title>' + links +
-    '<style>' + styles +
-    'body{background:#f5f4f0}.app-wrapper{display:block!important}' +
-    '.input-panel,.action-bar{display:none!important}' +
-    '.report-panel{padding:0!important;background:#fff!important}' +
-    '#report-output{display:block!important}' +
-    '</style></head>' +
-    '<body><div class="app-wrapper"><div class="report-panel"><div id="report-output">' +
-    clone.outerHTML + '</div></div></div></body></html>'
-  );
-  iDoc.close();
-
-  var fired = false;
-  function go() {
-    if (fired) return; fired = true;
-    iWin.focus();
-    iWin.print();
-    setTimeout(function(){
-      document.title = origTitle;
-      var f=document.getElementById('_pf'); if(f) f.parentNode.removeChild(f);
-    }, 3000);
-  }
-  frame.onload = go;
-  setTimeout(go, 800);
 }
+
+function restorePrint() {
+  if (!_printState) return;
+  _printState.swaps.forEach(function(s) {
+    if (s.img.parentNode) s.img.parentNode.removeChild(s.img);
+    s.canvas.id = s.id;
+    s.canvas.style.display = '';
+  });
+  document.title = _printState.title;
+  _printState = null;
+}
+
+function doPrint() {
+  restorePrint();   // 前回の印刷がキャンセル等で戻っていなければ戻してからやり直す
+  preparePrint();
+  window.print();
+}
+
+// Safariのメニューや⌘Pから印刷した場合も同じ状態にする
+window.addEventListener('beforeprint', preparePrint);
+window.addEventListener('afterprint', restorePrint);
 
 function generateReport(){
   var s=getScores();
@@ -2517,6 +2499,7 @@ function renderValuesSection(vals) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: false,   // 描き終わった状態をすぐ画像化できるように（印刷用）
         scales: {
           r: {
             min: 0, max: 5,
@@ -2585,6 +2568,7 @@ function renderCharts(s, L) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: false,   // 描き終わった状態をすぐ画像化できるように（印刷用）
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -2780,8 +2764,9 @@ function runBatchStep(){
     syncScore('ac', d.scores.ac);
     _valuesData = d.scores.values || null;
     generateReport();
+    // 自動では印刷しない（Safariはボタン操作以外からの印刷を制限するため）。
+    // バーの「PDF保存」ボタンを押して1人ずつ保存する
     showBatchBar(d, queue.length, false, idx);
-    setTimeout(function(){ doPrint(); }, 600);
   }catch(e){ console.error(e); }
 }
 
@@ -2799,11 +2784,19 @@ function showBatchBar(d, total, done, idx){
   } else {
     bar.innerHTML =
       '<span style="font-size:13px">一括PDF保存中　<strong>'+(idx+1)+' / '+total+'</strong>　（'+escBatchHtml(d.name)+'）</span>' +
-      '<span style="font-size:11px;color:#c8c8dc">保存ダイアログでPDF保存 or キャンセルしたら「次へ」を押してください</span>' +
+      '<span style="font-size:11px;color:#c8c8dc">「PDF保存」で保存したら「次へ」を押してください</span>' +
+      '<button id="batch-print-btn" onclick="doPrint()" disabled style="border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;background:#7dd9a8;color:#1a1a2e;opacity:.5">🖨️ PDF保存</button>' +
       '<button onclick="nextBatchStep()" style="border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#1a1a2e">次へ ▶</button>' +
       '<button onclick="cancelBatch()" style="border:1px solid #666;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;background:transparent;color:#fff">中止</button>';
   }
   document.body.appendChild(bar);
+  // 価値観グラフ（80ms後に作成）とP・A・Cバーの伸びる動き（0.6秒）が終わってから押せるようにする
+  if(!done){
+    setTimeout(function(){
+      var b = document.getElementById('batch-print-btn');
+      if(b){ b.disabled = false; b.style.opacity = '1'; }
+    }, 1000);
+  }
 }
 
 function escBatchHtml(s){
