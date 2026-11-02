@@ -2224,17 +2224,38 @@ function buildRoleSection(role, L, T, s) {
 // タイトル（=PDFのファイル名）と差し替えは、時間ではなく afterprint で元に戻す。
 var _printState = null;
 
+// 印刷用のグラフの大きさ（CSS px）。画面の幅によらず、印刷枠の縦横比に合うこの大きさで描き直してから画像にする。
+// 380×200 / 380×380 は以前の方式で正しく印刷できていたときの大きさ（紺野大祐_分析レポート.pdf と同じ）
+var PRINT_CHART_SIZES = [
+  { inst: '_radarInst',       w: 380, h: 200 },
+  { inst: '_valuesRadarInst', w: 380, h: 380 }
+];
+
 function preparePrint() {
   if (_printState) return;
   var reportEl = document.getElementById('report-doc');
   if (!reportEl) return;
   var personName = (document.getElementById('name').value || '').trim();
-  _printState = { title: document.title, swaps: [] };
+  _printState = { title: document.title, swaps: [], sizes: [] };
   document.title = personName ? personName + '_分析レポート' : '分析レポート';
+  // ① グラフを印刷用の大きさで描き直して画像にする（animation:false なのですぐ描き終わる）
+  var urls = {};
+  PRINT_CHART_SIZES.forEach(function(p) {
+    var ch = window[p.inst];
+    if (!ch || !ch.canvas) return;
+    _printState.sizes.push({ chart: ch, w: ch.width, h: ch.height });
+    try {
+      ch.resize(p.w, p.h);
+      urls[ch.canvas.id] = ch.canvas.toDataURL('image/png');
+    } catch(e) {}
+  });
+  // ② 画面の大きさに戻してから、canvasを隠して画像に差し替える
+  //    （印刷中の入れ物の大きさは画面のまま。画像は max-width:100% で枠に収まる）
+  _printState.sizes.forEach(function(s) { try { s.chart.resize(s.w, s.h); } catch(e) {} });
   reportEl.querySelectorAll('canvas').forEach(function(cv) {
     try {
       var img = document.createElement('img');
-      img.src = cv.toDataURL('image/png');
+      img.src = urls[cv.id] || cv.toDataURL('image/png');
       img.id = cv.id;               // 印刷CSSの #valuesRadarChart 指定を画像に効かせる
       img.className = cv.className;
       img.style.display = 'block';
@@ -2255,6 +2276,8 @@ function restorePrint() {
     s.canvas.id = s.id;
     s.canvas.style.display = '';
   });
+  // 隠している間に入れ物の大きさが変わって描き直されていても、印刷前と同じ大きさに戻す
+  _printState.sizes.forEach(function(s) { try { s.chart.resize(s.w, s.h); } catch(e) {} });
   document.title = _printState.title;
   _printState = null;
 }
@@ -2500,6 +2523,7 @@ function renderValuesSection(vals) {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,   // 描き終わった状態をすぐ画像化できるように（印刷用）
+        devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),   // 印刷画像を2倍以上の解像度に
         scales: {
           r: {
             min: 0, max: 5,
@@ -2569,6 +2593,7 @@ function renderCharts(s, L) {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,   // 描き終わった状態をすぐ画像化できるように（印刷用）
+      devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),   // 印刷画像を2倍以上の解像度に
       plugins: {
         legend: { display: false },
         tooltip: {
